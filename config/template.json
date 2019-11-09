@@ -1,0 +1,17 @@
+[{
+  "name": "index",
+  "type": "index",
+  "title": "首页模板"
+}, {
+  "name": "category",
+  "type": "category",
+  "title": "默认栏目模板"
+}, {
+  "name": "list",
+  "type": "list",
+  "title": "默认列表模板"
+}, {
+  "name": "detail",
+  "type": "detail",
+  "title": "默认详情模板"
+}]
