@@ -39,6 +39,10 @@ class GoodsModel extends Model {
           type: Sequelize.BIGINT(20),
           defaultValue: 0
         },
+        category_id: {
+          type: Sequelize.BIGINT(20),
+          defaultValue: 0
+        },
         type: {
           type: Sequelize.INTEGER(2),
           defaultValue: 1
@@ -86,6 +90,14 @@ class GoodsModel extends Model {
         price_vip: {
           type: Sequelize.BIGINT(11),
           defaultValue: 0
+        },
+        create_user: {
+          type: Sequelize.STRING(64),
+          defaultValue: ''
+        },
+        update_user: {
+          type: Sequelize.STRING(64),
+          defaultValue: ''
         }
       }, {
         timestamps: true,
