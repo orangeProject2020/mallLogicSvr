@@ -26,6 +26,7 @@ class OrderController extends Controller {
     let address = args.address || ''
     let remark = args.remark || ''
 
+
     let orderModel = new this.MODELS.orderModel
     let orderItemModel = new this.MODELS.orderItemModel
     let goodsModel = new this.MODELS.goodsModel
@@ -39,6 +40,7 @@ class OrderController extends Controller {
       for (let index = 0; index < orders.length; index++) {
         let orderInfo = orders[index]
         let businessId = orderInfo.business_id || 0
+        let remarkOrder = orderInfo.remark || remark || ''
         let score = orderInfo.score || 0 // 使用积分
         scoreTotal += score
 
@@ -46,7 +48,7 @@ class OrderController extends Controller {
           business_id: businessId,
           order_no: this._createOrderNo(args, ret),
           address: address ? JSON.stringify(address) : '',
-          remark: remark
+          remark: remarkOrder
         }
         let order = await orderModel.model().create(orderData)
         if (!order) {

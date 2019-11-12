@@ -107,7 +107,13 @@ class GoodsController extends Controller {
    */
   async detail(args, ret) {
     this.LOG.info(args.uuid, '/list', args)
+    let goodsModel = new this.MODELS.goodsModel
 
+    let id = args.id
+    let goods = await goodsModel.model().findByPk(id)
+    ret.data = goods
+
+    return ret
   }
 
   /**
