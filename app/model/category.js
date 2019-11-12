@@ -43,6 +43,10 @@ class CategoryModel extends Model {
           type: Sequelize.STRING(255),
           defaultValue: ''
         },
+        business_id: {
+          type: Sequelize.BIGINT(20),
+          defaultValue: 0
+        },
       }, {
         timestamps: true,
         createdAt: 'create_time',

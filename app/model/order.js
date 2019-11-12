@@ -71,6 +71,10 @@ class OrderModel extends Model {
           type: Sequelize.BIGINT(11),
           defaultValue: 0
         },
+        business_id: {
+          type: Sequelize.BIGINT(20),
+          defaultValue: 0
+        }
       }, {
         timestamps: true,
         createdAt: 'create_time',

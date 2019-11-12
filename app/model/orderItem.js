@@ -23,6 +23,10 @@ class OrderItemModel extends Model {
           type: Sequelize.INTEGER(2),
           defaultValue: 0
         },
+        business_id: {
+          type: Sequelize.BIGINT(20),
+          defaultValue: 0
+        },
         order_id: {
           type: Sequelize.BIGINT(20),
           defaultValue: ''
@@ -30,6 +34,10 @@ class OrderItemModel extends Model {
         goods_id: {
           type: Sequelize.BIGINT(20),
           defaultValue: ''
+        },
+        type: {
+          type: Sequelize.INTEGER(2),
+          defaultValue: 1
         },
         user_id: {
           type: Sequelize.STRING(64),

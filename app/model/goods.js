@@ -35,6 +35,14 @@ class GoodsModel extends Model {
           type: Sequelize.STRING(1000),
           defaultValue: ''
         },
+        business_id: {
+          type: Sequelize.BIGINT(20),
+          defaultValue: 0
+        },
+        type: {
+          type: Sequelize.INTEGER(2),
+          defaultValue: 1
+        },
         sku_id: {
           type: Sequelize.STRING(32),
           defaultValue: ''
