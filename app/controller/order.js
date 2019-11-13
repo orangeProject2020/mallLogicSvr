@@ -32,6 +32,9 @@ class OrderController extends Controller {
     let goodsModel = new this.MODELS.goodsModel
 
     let t = await orderModel.getTrans()
+    let opts = {
+      transaction: t
+    }
 
     try {
       let retData = []
@@ -84,7 +87,7 @@ class OrderController extends Controller {
             } else {
               // 减去库存
               goods.stock = goods.stock - num
-              let goodsUpdateRet = await goods.save()
+              let goodsUpdateRet = await goods.save(opts)
               if (!goodsUpdateRet) {
                 throw new Error('goods stock update error')
               }
@@ -105,7 +108,7 @@ class OrderController extends Controller {
           itemData.score = goods.score || 0
           itemData.total = goodsPrice * num
 
-          let orderItem = await orderItemModel.model().create(itemData)
+          let orderItem = await orderItemModel.model().create(itemData, opts)
           if (!orderItem) {
             throw new Error('order item create error')
           }
@@ -125,7 +128,7 @@ class OrderController extends Controller {
         order.total = orderTotal - score
         order.score = score
 
-        let orderUpdateRet = await order.save()
+        let orderUpdateRet = await order.save(opts)
         if (!orderUpdateRet) {
           throw new Error('order update error')
         }
@@ -163,15 +166,233 @@ class OrderController extends Controller {
    * @param {*} ret 
    */
   async cancel(args, ret) {
+    this.LOG.info(args.uuid, '/cancel', args)
+    let checkUserRet = await this._checkUser(args, ret)
+    if (checkUserRet.code !== 0) {
+      return checkUserRet
+    }
 
+    // let orderModel = new this.MODELS.orderModel
+    // let orderItemModel = new this.MODELS.orderItemModel
+    let goodsModel = new this.MODELS.goods_id
+
+    let t = await goodsModel.getTrans()
+    let opts = {
+      transaction: t
+    }
+
+    let orderId = args.order_id || args.id || 0
+    let status = -1
+    try {
+      if (!orderId) {
+        throw new Error('order id error')
+      }
+
+      let updateRet = await this._updateOrderStatus(args, ret, opts, status)
+      if (updateRet.code != 0) {
+        throw new Error(updateRet.message)
+      }
+
+      let orderItems = args.orderItems
+      for (let index = 0; index < orderItems.length; index++) {
+        let item = orderItems[index];
+        // 加上库存
+        let goodsId = item.goods_id
+        let goods = await goodsModel.findByPk(goodsId)
+        if (goods.stock != -1) {
+          goods.stock += item.num
+          goodsRet = await goods.save(opts)
+          if (!itemRet) {
+            throw new Error('更新商品库存失败')
+          }
+        }
+      }
+      // let order = await orderModel.model().findByPk(orderId)
+      // if (order.status != 0) {
+      //   throw new Error('订单状态无法取消')
+      // }
+
+      // let orderItems = await orderItemModel.model().findAll({
+      //   where: {
+      //     order_id: orderId
+      //   }
+      // })
+
+      // let now = parseInt(Date.now() / 1000)
+      // order.status = status
+      // order.cancel_time = now
+
+      // let orderRet = order.save(opts)
+      // if (!orderRet) {
+      //   throw new Error('更新订单状态失败')
+      // }
+
+      // for (let index = 0; index < orderItems.length; index++) {
+      //   let item = orderItems[index];
+      //   item.status = status
+      //   let itemRet = await item.save(opts)
+      //   if (!itemRet) {
+      //     throw new Error('更新订单商品状态失败')
+      //   }
+
+      //   // 加上库存
+      //   let goodsId = item.goods_id
+      //   let goods = await goodsModel.findByPk(goodsId)
+      //   if (goods.stock != -1) {
+      //     goods.stock += item.num
+      //     goodsRet = await goods.save(opts)
+      //     if (!itemRet) {
+      //       throw new Error('更新商品库存失败')
+      //     }
+      //   }
+
+      // }
+
+      t.commit()
+    } catch (err) {
+      console.error(err)
+      this.LOG.error(args.uuid, '/cancel', err)
+      ret.code = 1
+      ret.message = err.message || err
+
+      t.rollback()
+    }
+
+    return ret
   }
 
   /**
-   * 完成订单
+   * 完成支付
    * @param {*} args 
    * @param {*} ret 
    */
   async complete(args, ret) {
+    this.LOG.info(args.uuid, '/complete', args)
+    let checkUserRet = await this._checkUser(args, ret)
+    if (checkUserRet.code !== 0) {
+      return checkUserRet
+    }
+
+    let orderModel = new this.MODELS.orderModel
+
+    let t = await orderModel.getTrans()
+    let opts = {
+      transaction: t
+    }
+
+    let orderId = args.order_id || args.id || 0
+    let status = 1
+    try {
+      if (!orderId) {
+        throw new Error('order id error')
+      }
+
+      let updateRet = await this._updateOrderStatus(args, ret, opts, status)
+      if (updateRet.code != 0) {
+        throw new Error(updateRet.message)
+      }
+
+      t.commit()
+    } catch (err) {
+      console.error(err)
+      this.LOG.error(args.uuid, '/cancel', err)
+      ret.code = 1
+      ret.message = err.message || err
+
+      t.rollback()
+    }
+
+    return ret
+
+  }
+
+  /**
+   * 完成收货
+   * @param {*} args 
+   * @param {*} ret 
+   */
+  async finish(args, ret) {
+    this.LOG.info(args.uuid, '/finish', args)
+    let checkUserRet = await this._checkUser(args, ret)
+    if (checkUserRet.code !== 0) {
+      return checkUserRet
+    }
+
+    let orderModel = new this.MODELS.orderModel
+
+    let t = await orderModel.getTrans()
+    let opts = {
+      transaction: t
+    }
+
+    let orderId = args.order_id || args.id || 0
+    let status = 3
+    try {
+      if (!orderId) {
+        throw new Error('order id error')
+      }
+
+      let updateRet = await this._updateOrderStatus(args, ret, opts, status)
+      if (updateRet.code != 0) {
+        throw new Error(updateRet.message)
+      }
+
+      t.commit()
+    } catch (err) {
+      console.error(err)
+      this.LOG.error(args.uuid, '/finish', err)
+      ret.code = 1
+      ret.message = err.message || err
+
+      t.rollback()
+    }
+
+    return ret
+
+  }
+
+  /**
+   * 完成发货
+   * @param {*} args 
+   * @param {*} ret 
+   */
+  async update(args, ret) {
+    this.LOG.info(args.uuid, '/update', args)
+    let checkUserRet = await this._checkUser(args, ret)
+    if (checkUserRet.code !== 0) {
+      return checkUserRet
+    }
+
+    let orderModel = new this.MODELS.orderModel
+
+    let t = await orderModel.getTrans()
+    let opts = {
+      transaction: t
+    }
+
+    let orderId = args.order_id || args.id || 0
+    let status = args.status || 2
+    try {
+      if (!orderId) {
+        throw new Error('order id error')
+      }
+
+      let updateRet = await this._updateOrderStatus(args, ret, opts, status)
+      if (updateRet.code != 0) {
+        throw new Error(updateRet.message)
+      }
+
+      t.commit()
+    } catch (err) {
+      console.error(err)
+      this.LOG.error(args.uuid, '/update', err)
+      ret.code = 1
+      ret.message = err.message || err
+
+      t.rollback()
+    }
+
+    return ret
 
   }
 
@@ -181,7 +402,60 @@ class OrderController extends Controller {
    * @param {*} ret 
    */
   async list(args, ret) {
+    this.LOG.info(args.uuid, '/list', args)
 
+    let orderModel = new this.MODELS.orderModel
+    let orderItemModel = new this.MODELS.orderItemModel
+    let where = {}
+    let opts = {}
+
+    if (args.hasOwnProperty('status')) {
+      where.status = 1
+    }
+    if (args.hasOwnProperty('business_id')) {
+      where.business_id = args.business_id || 0
+    }
+    if (args.hasOwnProperty('user_id')) {
+      where.user_id = args.user_id
+    }
+
+    opts.where = where
+
+    let page = args.page || 1
+    let limit = args.limit || 0
+
+    if (limit) {
+      opts.offset = (page - 1) * limit
+      opts.limit = limit
+    }
+
+    opts.order = [
+      ['sort', 'asc'],
+      ['create_time', 'desc']
+    ]
+    this.LOG.info(args.uuid, '/list opts', opts)
+
+    let orderRet = await orderModel.model().findAndCountAll(opts)
+    this.LOG.info(args.uuid, '/list orderRet', orderRet)
+
+    let rows = []
+    for (let index = 0; index < orderRet.rows.length; index++) {
+      let order = orderRet.rows[index];
+      let orderId = order.id
+      let orderItems = await orderItemModel.model().findAll({
+        where: {
+          order_id: orderId
+        }
+      })
+
+      order.items = orderItems
+      rows.push(order)
+    }
+
+    orderRet.rows = rows
+    ret.data = orderRet
+
+    return ret
   }
 
   /**
@@ -228,11 +502,55 @@ class OrderController extends Controller {
    * @param {*} args 
    * @param {*} ret 
    */
-  async update(args, ret) {
+  async _updateOrderStatus(args, ret, opts, status = -1) {
 
+    this.LOG.info(args.uuid, '/_updateOrderStatus', args)
+    let orderModel = new this.MODELS.orderModel
+    let orderItemModel = new this.MODELS.orderItemModel
+
+    try {
+      let order = await orderModel.model().findByPk(orderId)
+      let orderItems = await orderItemModel.model().findAll({
+        where: {
+          order_id: orderId
+        }
+      })
+
+      args.order = order.dataValues
+      args.orderItems = orderItems
+
+      let now = parseInt(Date.now() / 1000)
+      order.status = status
+      if (status == -1) {
+        order.cancel = now
+      } else if (status == 1) {
+        order.payment_time = now
+      } else if (status == 2) {
+        order.express_time = now
+      } else if (status == 3) {
+        order.finish_time = now
+      }
+
+      let orderRet = order.save(opts)
+      if (!orderRet) {
+        throw new Error('更新订单状态失败')
+      }
+
+      for (let index = 0; index < orderItems.length; index++) {
+        let item = orderItems[index];
+        item.status = status
+        let itemRet = await item.save(opts)
+        if (!itemRet) {
+          throw new Error('更新订单商品状态失败')
+        }
+      }
+    } catch (err) {
+      ret.code = 1
+      ret.message = err.message || err
+    }
+
+    return ret
   }
-
-
 
 
 }

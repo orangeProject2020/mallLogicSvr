@@ -67,7 +67,7 @@ class OrderModel extends Model {
           type: Sequelize.BIGINT(11),
           defaultValue: 0
         },
-        complete_time: {
+        finish_time: {
           type: Sequelize.BIGINT(11),
           defaultValue: 0
         },
