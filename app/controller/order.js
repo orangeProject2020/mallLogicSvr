@@ -46,6 +46,7 @@ class OrderController extends Controller {
 
         let orderData = {
           business_id: businessId,
+          user_id: userId,
           order_no: this._createOrderNo(args, ret),
           address: address ? JSON.stringify(address) : '',
           remark: remarkOrder
