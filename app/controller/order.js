@@ -410,7 +410,7 @@ class OrderController extends Controller {
     let opts = {}
 
     if (args.hasOwnProperty('status')) {
-      where.status = 1
+      where.status = args.status
     }
     if (args.hasOwnProperty('business_id')) {
       where.business_id = args.business_id || 0
@@ -430,7 +430,7 @@ class OrderController extends Controller {
     }
 
     opts.order = [
-      ['sort', 'asc'],
+      // ['status', 'asc'],
       ['create_time', 'desc']
     ]
     this.LOG.info(args.uuid, '/list opts', opts)
