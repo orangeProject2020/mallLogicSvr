@@ -77,6 +77,23 @@ class PaymentController extends Controller {
       paymentData.balance = balance
       paymentData.coupon = coupon
 
+      if (payType == 0) {
+        // 线下支付，order.status - 9
+        let orderIds = payment.order_ids.split('-')
+        for (let index = 0; index < orderIds.length; index++) {
+          let orderId = orderIds[index];
+          if (orderId) {
+            let order = await orderModel.model().findByPk(orderId)
+            order.status = 9
+            let orderRet = order.save(opts)
+            if (!orderRet) {
+              throw new Error('更新订单支付中状态失败')
+            }
+          }
+
+        }
+      }
+
       if (paymentAmount === 0) {
         paymentData.status = 1
 
@@ -98,9 +115,9 @@ class PaymentController extends Controller {
         throw new Error('创建支付账单失败')
       }
 
-      // TODO 减去用户积分，余额，优惠券
-
       t.commit()
+
+      ret.data = payment
 
     } catch (err) {
       console.error(err)
@@ -126,7 +143,6 @@ class PaymentController extends Controller {
     }
 
     let outTradeNo = args.out_trade_no || ''
-
 
     let paymentModel = new this.MODELS.paymentModel
 
@@ -164,6 +180,9 @@ class PaymentController extends Controller {
         }
 
       }
+
+      // TODO 减去用户积分，余额，优惠券
+
     } catch (err) {
       console.error(err)
       this.LOG.error(args.uuid, '/complete', err)

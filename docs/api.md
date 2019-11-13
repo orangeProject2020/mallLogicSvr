@@ -42,3 +42,30 @@
   ]
 }
 ```
+
+### 创建支付账单
+
+#### 入参
+
+```json
+{
+  "user_id": "xxxxxx",
+  "order_ids": [],
+  "total": 0,
+  "amount": 0,
+  "score": 0,
+  "pay_type": 0,
+  "pay_method": 0,
+  "balance": 0,
+  "coupon": 0,
+  "user_coupon_id": 0
+}
+```
+
+#### 出参
+
+```json
+{
+  "out_trade_no": "xxxxxx"
+}
+```
