@@ -189,7 +189,37 @@ class OrderController extends Controller {
    * @param {*} ret 
    */
   async detail(args, ret) {
+    this.LOG.info(args.uuid, '/detail', args)
+    let id = args.id
+    let userId = args.user_id
 
+    let orderModel = new this.MODELS.orderModel
+    let orderItemModel = new this.MODELS.orderItemModel
+    let order = await orderModel.model().findByPk(id)
+
+    if (!order) {
+      ret.code = 1
+      ret.message = '无效订单'
+      return ret
+    }
+
+    if (userId && order.user_id != userId) {
+      ret.code = 1
+      ret.message = '无效订单!'
+      return ret
+    }
+
+    let orderItems = await orderItemModel.model().findAll({
+      where: {
+        order_id: order.id
+      }
+    })
+
+    let resultData = order.dataValues
+    resultData.items = orderItems
+
+    ret.data = resultData
+    return ret
   }
 
   /**
