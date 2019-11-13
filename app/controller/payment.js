@@ -1,4 +1,5 @@
 const Controller = require('../../lib/controller')
+const uuid = require('uuid')
 
 class PaymentController extends Controller {
 
@@ -40,7 +41,7 @@ class PaymentController extends Controller {
       let paymentAmount = 0
       let paymentScore = 0
       for (let index = 0; index < orderIds.length; index++) {
-        let orderId = array[index];
+        let orderId = orderIds[index];
         let order = await orderModel.model().findByPk(orderId)
         if (!order) {
           throw new Error('订单信息错误')
@@ -68,7 +69,7 @@ class PaymentController extends Controller {
       let paymentData = {}
       paymentData.user_id = args.user_id
       paymentData.order_ids = '-' + orderIds.join('-') + '-'
-      paymentData.out_trade_no = uuid.v4().eplace(/-/g, "")
+      paymentData.out_trade_no = uuid.v4().replace(/-/g, "")
       paymentData.total = total
       paymentData.amount = amount
       paymentData.pay_type = payType
@@ -79,7 +80,7 @@ class PaymentController extends Controller {
 
       if (payType == 0) {
         // 线下支付，order.status - 9
-        let orderIds = payment.order_ids.split('-')
+        let orderIds = paymentData.order_ids.split('-')
         for (let index = 0; index < orderIds.length; index++) {
           let orderId = orderIds[index];
           if (orderId) {
@@ -97,7 +98,7 @@ class PaymentController extends Controller {
       if (paymentAmount === 0) {
         paymentData.status = 1
 
-        let orderIds = payment.order_ids.split('-')
+        let orderIds = paymentData.order_ids.split('-')
         for (let index = 0; index < orderIds.length; index++) {
           let orderId = orderIds[index];
           if (orderId) {

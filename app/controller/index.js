@@ -1,7 +1,8 @@
 // 获取所有方法
 const methods = {
   goods: require('./goods'),
-  order: require('./order')
+  order: require('./order'),
+  payment: require('./payment')
 }
 
 let METHODS = {}
