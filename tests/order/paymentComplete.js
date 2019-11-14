@@ -5,7 +5,7 @@ let request = new Request({
   key: 'qsopifkhjjgjgfossfngnjgdsknkjlkljs'
 })
 const DOMAIN = 'http://127.0.0.1:10000'
-const orderId = 16
+const orderId = 20
 describe('order', () => {
   it('payment_complete', async () => {
     // payemnt create
@@ -14,8 +14,8 @@ describe('order', () => {
     paymentCreateRet = await request.post(DOMAIN + '/mall/payment/create', {
       "user_id": "090d668c-7388-403f-b9b7-0c3eefd665d5",
       "order_ids": [orderId],
-      "total": 289800,
-      "amount": 289800,
+      "total": 319800,
+      "amount": 319800,
       "score": 0,
       "pay_type": 0,
       "pay_method": 0,
@@ -30,6 +30,7 @@ describe('order', () => {
 
     if (paymentCreateRet.code != 0) {
       console.log('payment_complete:', paymentCreateRet.message)
+      return
     }
 
     let outTradeNo = paymentCreateRet.data.out_trade_no
