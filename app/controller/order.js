@@ -174,7 +174,7 @@ class OrderController extends Controller {
 
     // let orderModel = new this.MODELS.orderModel
     // let orderItemModel = new this.MODELS.orderItemModel
-    let goodsModel = new this.MODELS.goods_id
+    let goodsModel = new this.MODELS.goodsModel
 
     let t = await goodsModel.getTrans()
     let opts = {
@@ -198,11 +198,11 @@ class OrderController extends Controller {
         let item = orderItems[index];
         // 加上库存
         let goodsId = item.goods_id
-        let goods = await goodsModel.findByPk(goodsId)
+        let goods = await goodsModel.model().findByPk(goodsId)
         if (goods.stock != -1) {
           goods.stock += item.num
-          goodsRet = await goods.save(opts)
-          if (!itemRet) {
+          let goodsRet = await goods.save(opts)
+          if (!goodsRet) {
             throw new Error('更新商品库存失败')
           }
         }
@@ -507,9 +507,19 @@ class OrderController extends Controller {
     this.LOG.info(args.uuid, '/_updateOrderStatus', args)
     let orderModel = new this.MODELS.orderModel
     let orderItemModel = new this.MODELS.orderItemModel
+    let orderId = args.order_id || args.id || 0
 
     try {
       let order = await orderModel.model().findByPk(orderId)
+      if (status == -1 && order.status != 0) {
+        throw new Error('订单状态错误-1')
+      } else if (status == 1 && order.status != 0) {
+        throw new Error('订单状态错误1')
+      } else if (status == 2 && order.status != 1) {
+        throw new Error('订单状态错误2')
+      } else if (status == 3 && order.status != 2) {
+        throw new Error('订单状态错误2')
+      }
       let orderItems = await orderItemModel.model().findAll({
         where: {
           order_id: orderId

@@ -78,22 +78,22 @@ class PaymentController extends Controller {
       paymentData.balance = balance
       paymentData.coupon = coupon
 
-      if (payType == 0) {
-        // 线下支付，order.status - 9
-        let orderIds = paymentData.order_ids.split('-')
-        for (let index = 0; index < orderIds.length; index++) {
-          let orderId = orderIds[index];
-          if (orderId) {
-            let order = await orderModel.model().findByPk(orderId)
-            order.status = 9
-            let orderRet = order.save(opts)
-            if (!orderRet) {
-              throw new Error('更新订单支付中状态失败')
-            }
-          }
+      // if (payType == 0) {
+      //   // 线下支付，order.status - 9
+      //   let orderIds = paymentData.order_ids.split('-')
+      //   for (let index = 0; index < orderIds.length; index++) {
+      //     let orderId = orderIds[index];
+      //     if (orderId) {
+      //       let order = await orderModel.model().findByPk(orderId)
+      //       order.status = 9
+      //       let orderRet = order.save(opts)
+      //       if (!orderRet) {
+      //         throw new Error('更新订单支付中状态失败')
+      //       }
+      //     }
 
-        }
-      }
+      //   }
+      // }
 
       if (paymentAmount === 0) {
         paymentData.status = 1
@@ -165,7 +165,7 @@ class PaymentController extends Controller {
       payment.status = 1
       payment.info = args.info ? JSON.status(args.info) : ''
 
-      paymentRet = await payment.save(opts)
+      let paymentRet = await payment.save(opts)
       if (!paymentRet) {
         throw new Error('更新账单状态失败')
       }
@@ -183,6 +183,7 @@ class PaymentController extends Controller {
       }
 
       // TODO 减去用户积分，余额，优惠券
+      t.commit()
 
     } catch (err) {
       console.error(err)
@@ -191,6 +192,8 @@ class PaymentController extends Controller {
       ret.message = err.message || err
       t.rollback()
     }
+
+    return ret
 
   }
 
@@ -257,7 +260,26 @@ class PaymentController extends Controller {
    * @param {*} ret 
    */
   async detail(args, ret) {
+    this.LOG.info(args.uuid, '/detail', args)
+    let paymentModel = new this.MODELS.paymentModel
 
+    let outTradeNo = args.out_trade_no || ''
+    let id = args.id || 0
+
+    let where = {}
+    if (outTradeNo) {
+      where.out_trade_no = outTradeNo
+    }
+    if (id) {
+      where.id = id
+    }
+
+    let payment = await paymentModel.model().findOne({
+      where: where
+    })
+
+    ret.data = payment
+    return ret
   }
 }
 
