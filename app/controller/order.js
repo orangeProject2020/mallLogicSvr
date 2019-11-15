@@ -5,7 +5,7 @@ class OrderController extends Controller {
   _createOrderNo(args, ret) {
     let orderNo = ''
     orderNo += parseInt(Math.random() * 100000).toString()
-    orderNo += this.UTILS.dateUtils.dateFormat(null, 'YYYYMMDDHHiiss')
+    orderNo += this.UTILS.dateUtils.dateFormat(null, 'YYYYMMDDHHmmss')
     orderNo += parseInt(Math.random() * 100000).toString()
     return orderNo
   }
@@ -448,7 +448,7 @@ class OrderController extends Controller {
         }
       })
 
-      order.items = orderItems
+      order.dataValues.items = orderItems
       rows.push(order)
     }
 
