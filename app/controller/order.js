@@ -96,6 +96,7 @@ class OrderController extends Controller {
 
           let itemData = {}
           itemData.business_id = businessId
+          itemData.category_id = goods.category_id
           itemData.user_id = userId
           itemData.order_id = orderId
           itemData.goods_id = goodsId

@@ -1,11 +1,11 @@
 const Model = require('../../lib/model')
 const Sequelize = require('sequelize')
 
-class OrderItemModel extends Model {
+class PaymentModel extends Model {
 
   model() {
     return this.db().define(
-      'orderItem', {
+      'statistics', {
         id: {
           type: Sequelize.BIGINT,
           primaryKey: true,
@@ -23,71 +23,64 @@ class OrderItemModel extends Model {
           type: Sequelize.INTEGER(2),
           defaultValue: 0
         },
-        business_id: {
-          type: Sequelize.BIGINT(20),
-          defaultValue: 0
-        },
-        order_id: {
-          type: Sequelize.BIGINT(20),
-          defaultValue: 0
-        },
-        goods_id: {
-          type: Sequelize.BIGINT(20),
-          defaultValue: 0
-        },
-        category_id: {
-          type: Sequelize.BIGINT(20),
-          defaultValue: 0
-        },
-        type: {
-          type: Sequelize.INTEGER(2),
-          defaultValue: 1
-        },
-        user_id: {
-          type: Sequelize.STRING(64),
-          defaultValue: ''
-        },
-        name: {
-          type: Sequelize.STRING(255),
-          defaultValue: ''
-        },
-        cover: {
-          type: Sequelize.STRING(255),
-          defaultValue: ''
-        },
-        num: {
+        count_create: {
           type: Sequelize.BIGINT(11),
           defaultValue: 0
         },
-        price: {
+        count_payment: {
           type: Sequelize.BIGINT(11),
           defaultValue: 0
         },
-        price_cost: {
+        count_complete: {
           type: Sequelize.BIGINT(11),
           defaultValue: 0
         },
-        score: {
+        count_finish: {
           type: Sequelize.BIGINT(11),
           defaultValue: 0
         },
-        score_max: {
+        count_cancel: {
           type: Sequelize.BIGINT(11),
           defaultValue: 0
         },
-        total: {
+        total_create: {
+          type: Sequelize.BIGINT(11),
+          defaultValue: 0
+        },
+        total_payment: {
+          type: Sequelize.BIGINT(11),
+          defaultValue: 0
+        },
+        total_complete: {
+          type: Sequelize.BIGINT(11),
+          defaultValue: 0
+        },
+        total_finish: {
+          type: Sequelize.BIGINT(11),
+          defaultValue: 0
+        },
+        total_cancel: {
+          type: Sequelize.BIGINT(11),
+          defaultValue: 0
+        },
+        payment_count: {
+          type: Sequelize.BIGINT(11),
+          defaultValue: 0
+        },
+        payment_total: {
           type: Sequelize.BIGINT(11),
           defaultValue: 0
         }
+
       }, {
         timestamps: true,
         createdAt: 'create_time',
         updatedAt: 'update_time',
         freezeTableName: true,
-        tableName: 't_order_item'
+        tableName: 't_statistics'
       }
     );
   }
 }
 
-module.exports = OrderItemModel
+module.exports = PaymentModel

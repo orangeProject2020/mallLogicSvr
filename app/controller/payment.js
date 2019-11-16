@@ -77,6 +77,7 @@ class PaymentController extends Controller {
       paymentData.score = score
       paymentData.balance = balance
       paymentData.coupon = coupon
+      paymentData.remark = args.remark || ''
 
       // if (payType == 0) {
       //   // 线下支付，order.status - 9
@@ -163,6 +164,7 @@ class PaymentController extends Controller {
       }
 
       payment.status = 1
+      payment.remark = args.remark || ''
       payment.info = args.info ? JSON.status(args.info) : ''
 
       let paymentRet = await payment.save(opts)

@@ -2,7 +2,8 @@
 const methods = {
   goods: require('./goods'),
   order: require('./order'),
-  payment: require('./payment')
+  payment: require('./payment'),
+  statistics: require('./statistics')
 }
 
 let METHODS = {}

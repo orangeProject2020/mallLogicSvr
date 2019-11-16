@@ -62,6 +62,10 @@ class PaymentModel extends Model {
         pay_method: {
           type: Sequelize.INTEGER(2),
           defaultValue: 0
+        },
+        remark: {
+          type: Sequelize.STRING(255),
+          defaultValue: ''
         }
       }, {
         timestamps: true,

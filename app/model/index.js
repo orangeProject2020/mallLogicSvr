@@ -3,5 +3,6 @@ module.exports = {
   goodsModel: require('./goods'),
   orderModel: require('./order'),
   orderItemModel: require('./orderItem'),
-  paymentModel: require('./payment')
+  paymentModel: require('./payment'),
+  statisticsModel: require('./statistics')
 }
