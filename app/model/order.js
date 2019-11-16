@@ -63,6 +63,10 @@ class OrderModel extends Model {
           type: Sequelize.BIGINT(11),
           defaultValue: 0
         },
+        cancel_reason: {
+          type: Sequelize.STRING(255),
+          defaultValue: ''
+        },
         express_time: {
           type: Sequelize.BIGINT(11),
           defaultValue: 0

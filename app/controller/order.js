@@ -532,7 +532,8 @@ class OrderController extends Controller {
       let now = parseInt(Date.now() / 1000)
       order.status = status
       if (status == -1) {
-        order.cancel = now
+        order.cancel_time = now
+        order.cancel_reason = args.cancel_reason || ''
       } else if (status == 1) {
         order.payment_time = now
       } else if (status == 2) {
