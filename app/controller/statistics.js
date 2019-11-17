@@ -137,13 +137,13 @@ class StatisticsController extends Controller {
         status: 1
       }
     })
-    statisticsData.payment_count = paymentCount
+    statisticsData.payment_count = paymentCount || 0
     let paymentTotal = await paymentModel.model().sum('total', {
       where: {
         status: 1
       }
     })
-    statisticsData.payment_total = paymentTotal
+    statisticsData.payment_total = paymentTotal || 0
 
     return statisticsData
 

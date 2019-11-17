@@ -1,5 +1,6 @@
 const Controller = require('../../lib/controller')
 const uuid = require('uuid')
+const Op = require('sequelize').Op
 
 class PaymentController extends Controller {
 
@@ -253,6 +254,50 @@ class PaymentController extends Controller {
    * @param {*} ret 
    */
   async list(args, ret) {
+    this.LOG.info(args.uuid, '/list', args)
+    // let authRet = await this._authByToken(args, ret)
+    // if (authRet.code != 0) {
+    //   return authRet
+    // }
+
+    let page = args.page || 1
+    let limit = args.limit || 0
+    let paymentModel = new this.MODELS.paymentModel
+
+    let where = {}
+    let opts = {}
+    if (args.hasOwnProperty('status')) {
+      where.status = args.status
+    } else {
+      where.status = 1
+    }
+
+    if (args.search) {
+      let search = args.search
+      where[Op.or] = {
+        mobile: search,
+        uuid: search,
+        id: search,
+        realname: search
+      }
+    }
+
+    opts.where = where
+
+    if (limit) {
+      opts.offset = (page - 1) * limit
+      opts.limit = limit
+    }
+
+    opts.order = [
+      ['status', 'asc'],
+      ['create_time', 'desc']
+    ]
+
+    let data = await paymentModel.model().findAndCountAll(opts)
+    this.LOG.info(args.uuid, '/list data', data)
+    ret.data = data
+    return ret
 
   }
 
