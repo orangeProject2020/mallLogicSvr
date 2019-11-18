@@ -2,6 +2,11 @@ const Controller = require('../../lib/controller')
 
 class ProfitController extends Controller {
 
+  /**
+   * 创建订单收益
+   * @param {*} args 
+   * @param {*} ret 
+   */
   async createByOrder(args, ret) {
     this.LOG.info(args.uuid, '/createByOrder', args)
     let orderId = args.order_id || args.id || 0
@@ -70,6 +75,15 @@ class ProfitController extends Controller {
     ret.data = retData
 
     return ret
+  }
+
+  /**
+   * 创建每日返利
+   * @param {*} args 
+   * @param {*} ret 
+   */
+  async createByDay(args, ret) {
+
   }
 }
 
