@@ -49,12 +49,12 @@ class ProfitController extends Controller {
    * @param {*} args 
    * @param {*} ret 
    */
-  async dayJob(args, ret) {
-    this.LOG.info(args.uuid, '/dayJob', args)
+  async dayJobProfitClose(args, ret) {
+    this.LOG.info(args.uuid, '/dayJobProfitClose', args)
 
     let listRet = await this.listByDate(args, ret)
     let list = listRet.data || []
-    this.LOG.info(args.uuid, '/dayJob list length:', list.length)
+    this.LOG.info(args.uuid, '/dayJobProfitClose list length:', list.length)
 
     let profitModel = new this.MODELS.profitModel
     let assetsModel = new this.MODELS.assetsModel
@@ -62,7 +62,7 @@ class ProfitController extends Controller {
 
     for (let index = 0; index < list.length; index++) {
       let item = list[index];
-      this.LOG.info(args.uuid, '/dayJob item:', index, list)
+      this.LOG.info(args.uuid, '/dayJobProfitClose item:', index, list)
 
       let userId = item.user_id
       let balance = item.amount
@@ -71,7 +71,7 @@ class ProfitController extends Controller {
 
       try {
         let assetsRet = await assetsModel.logCharge(userId, balance, t)
-        this.LOG.info(args.uuid, '/dayJob assetsRet:', assetsRet)
+        this.LOG.info(args.uuid, '/dayJobProfitClose assetsRet:', assetsRet)
         if (!assetsRet) {
           throw new Error(`记录用户${userId}资产增加失败`)
         }
@@ -81,16 +81,17 @@ class ProfitController extends Controller {
           uuid: args.uuid,
           t: t
         }, {
-          code: 0, message: ''
+          code: 0,
+          message: ''
         })
-        this.LOG.info(args.uuid, '/dayJob updateRet:', updateRet)
+        this.LOG.info(args.uuid, '/dayJobProfitClose updateRet:', updateRet)
         if (updateRet.code) {
           throw new Error(updateRet.message || `用户收益${userId}记录状态更新失败`)
         }
         await t.commit()
         len++
       } catch (err) {
-        this.LOG.error(args.uuid, '/dayJob err:', err.message)
+        this.LOG.error(args.uuid, '/dayJobProfitClose err:', err.message)
         await t.rollback()
       }
 
@@ -105,10 +106,19 @@ class ProfitController extends Controller {
   }
 
   /**
-  * 创建订单收益
-  * @param {*} args 
-  * @param {*} ret 
-  */
+   * 生成每日收益
+   * @param {*} args 
+   * @param {*} ret 
+   */
+  async dayJobCreateProfit(args, ret) {
+    this.LOG.info(args.uuid, '/dayJobCreateProfit', args)
+  }
+
+  /**
+   * 创建订单收益
+   * @param {*} args 
+   * @param {*} ret 
+   */
   async createByOrder(args, ret) {
     this.LOG.info(args.uuid, '/createByOrder', args)
     let orderId = args.order_id || args.id || 0
@@ -128,7 +138,9 @@ class ProfitController extends Controller {
       }
 
       let orderItems = await orderItemModel.model().findAll({
-        where: { order_id: orderId }
+        where: {
+          order_id: orderId
+        }
       })
 
       for (let index = 0; index < orderItems.length; index++) {
