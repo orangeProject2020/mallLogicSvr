@@ -17,7 +17,7 @@ class GoodsController extends Controller {
     let opts = {}
 
     if (args.hasOwnProperty('status')) {
-      where.status = 1
+      where.status = status
     }
     if (args.hasOwnProperty('business_id')) {
       where.business_id = args.business_id || 0

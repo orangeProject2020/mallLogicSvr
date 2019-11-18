@@ -5,5 +5,7 @@ module.exports = {
   orderItemModel: require('./orderItem'),
   paymentModel: require('./payment'),
   statisticsModel: require('./statistics'),
-  profitModel: require('./profit')
+  profitModel: require('./profit'),
+  assetsModel: require('./assets'),
+  withdrawModel: require('./withdraw')
 }
