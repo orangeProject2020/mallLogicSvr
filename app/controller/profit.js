@@ -49,7 +49,7 @@ class ProfitController extends Controller {
    * @param {*} args 
    * @param {*} ret 
    */
-  async dayJobProfitClose(args, ret) {
+  async dayJobProfitUserClose(args, ret) {
     this.LOG.info(args.uuid, '/dayJobProfitClose', args)
 
     let listRet = await this.listByDate(args, ret)
@@ -78,12 +78,11 @@ class ProfitController extends Controller {
 
         let updateRet = await this.updateItemStatus({
           id: item.id,
-          uuid: args.uuid,
-          t: t
+          uuid: args.uuid
         }, {
           code: 0,
           message: ''
-        })
+        }, t)
         this.LOG.info(args.uuid, '/dayJobProfitClose updateRet:', updateRet)
         if (updateRet.code) {
           throw new Error(updateRet.message || `用户收益${userId}记录状态更新失败`)
@@ -91,6 +90,7 @@ class ProfitController extends Controller {
         await t.commit()
         len++
       } catch (err) {
+        console.error(err)
         this.LOG.error(args.uuid, '/dayJobProfitClose err:', err.message)
         await t.rollback()
       }
@@ -157,6 +157,7 @@ class ProfitController extends Controller {
     this.LOG.info(args.uuid, '/_createByOrderItem', args)
     let orderItemModel = new this.MODELS.orderItemModel
     let profitModel = new this.MODELS.profitModel
+    let assetsModel = new this.MODELS.assetsModel
 
     let t = opts.transaction || null
     if (!t) {
@@ -192,13 +193,17 @@ class ProfitController extends Controller {
         let date = parseInt(Date.now() / 1000) + (profitDays + 1) * 24 * 3600
         date = this.UTILS.dateUtils.dateFormat(date, 'YYYY-MM-DD')
         this.LOG.info(args.uuid, '/_createByOrderItem date', date)
-        let profitConfig = await profitModel.configSet(userId, {
-          limit: profitLimit,
+        let assetsProfitRet = await assetsModel.logProfitAdd(userId, {
+          profit: profitLimit,
           level: profitLevel,
-          date: date
-        }, opts)
-        this.LOG.info(args.uuid, '/_createByOrderItem profitConfig', profitConfig)
-        if (!profitConfig) {
+          date: date,
+          remark: JSON.stringify({
+            order_id: orderItem.order_id,
+            order_item_id: orderItem.id
+          })
+        })
+        this.LOG.info(args.uuid, '/_createByOrderItem assetsProfitRet', assetsProfitRet)
+        if (!assetsProfitRet) {
           throw new Error('设置用户分润出现问题')
         }
 
@@ -230,14 +235,7 @@ class ProfitController extends Controller {
             }
           }
         }
-
-
-
       }
-
-      // profit user config
-
-
       await t.commit()
 
     } catch (err) {
@@ -255,58 +253,58 @@ class ProfitController extends Controller {
    * @param {*} args 
    * @param {*} ret 
    */
-  async createByOrder(args, ret) {
-    this.LOG.info(args.uuid, '/createByOrder', args)
-    let orderId = args.order_id || args.id || 0
-    // let date = this.UTILS.dateUtils.dateFormat(null, 'YYYY-MM-DD')
+  // async createByOrder(args, ret) {
+  //   this.LOG.info(args.uuid, '/createByOrder', args)
+  //   let orderId = args.order_id || args.id || 0
+  //   // let date = this.UTILS.dateUtils.dateFormat(null, 'YYYY-MM-DD')
 
-    let orderItemModel = new this.MODELS.orderItemModel
-    let orderModel = new this.MODELS.orderModel
-    // let profitModel = new this.MODELS.profitModel
-    let t = await orderModel.getTrans()
-    let opts = {
-      transaction: t
-    }
-    let retData = []
-    try {
+  //   let orderItemModel = new this.MODELS.orderItemModel
+  //   let orderModel = new this.MODELS.orderModel
+  //   // let profitModel = new this.MODELS.profitModel
+  //   let t = await orderModel.getTrans()
+  //   let opts = {
+  //     transaction: t
+  //   }
+  //   let retData = []
+  //   try {
 
-      let order = await orderModel.model().findByPk(orderId)
-      if (!order || order.status != 3) {
-        throw new Error('订单状态错误')
-      }
+  //     let order = await orderModel.model().findByPk(orderId)
+  //     if (!order || order.status != 3) {
+  //       throw new Error('订单状态错误')
+  //     }
 
-      let orderItems = await orderItemModel.model().findAll({
-        where: {
-          order_id: orderId
-        }
-      })
+  //     let orderItems = await orderItemModel.model().findAll({
+  //       where: {
+  //         order_id: orderId
+  //       }
+  //     })
 
-      for (let index = 0; index < orderItems.length; index++) {
-        let item = orderItems[index];
+  //     for (let index = 0; index < orderItems.length; index++) {
+  //       let item = orderItems[index];
 
-        let createRet = await this._createByOrderItem({
-          uuid: args.uuid,
-          id: item.id
-        }, {
-          code: 0,
-          message: ''
-        }, opts)
-        this.LOG.info(args.uuid, '/list createRet', item.id, createRet)
-        if (createRet.code === 0) {
-          len++
-        }
+  //       let createRet = await this._createByOrderItem({
+  //         uuid: args.uuid,
+  //         id: item.id
+  //       }, {
+  //         code: 0,
+  //         message: ''
+  //       }, opts)
+  //       this.LOG.info(args.uuid, '/list createRet', item.id, createRet)
+  //       if (createRet.code === 0) {
+  //         len++
+  //       }
 
-      }
+  //     }
 
-    } catch (err) {
-      ret.code = 1
-      ret.message = err.message || 'createByOrder error'
-    }
+  //   } catch (err) {
+  //     ret.code = 1
+  //     ret.message = err.message || 'createByOrder error'
+  //   }
 
-    ret.data = retData
+  //   ret.data = retData
 
-    return ret
-  }
+  //   return ret
+  // }
 
   /**
    * 每日平台返利结算
@@ -321,113 +319,103 @@ class ProfitController extends Controller {
 
     let orderItemModel = new this.MODELS.orderItemModel
     let profitModel = new this.MODELS.profitModel
-    let t = await profitModel.getTrans()
-    let opts = {
-      transaction: t
-    }
-    try {
-      // 首先获取今日可结算收益
-      let items = await orderItemModel.model().findAll({
-        where: {
-          status: 3,
-          profit_day_status: 0,
-          close_time: {
-            [Op.gte]: dateTimestart,
-            [Op.lt]: dateTimeEnd
-          }
-        }
-      })
-      this.LOG.info(args.uuid, '/dayJobProfitPlatformCheck items', items.length)
+    let assetsModel = new this.MODELS.assetsModel
 
-      let profitTotal = 0
-      let profitPlatform = 0
-      let profitSell = 0
-      for (let index = 0; index < items.length; index++) {
-        let item = items[index]
+    let items = await orderItemModel.model().findAll({
+      where: {
+        status: 3,
+        profit_day_status: 0,
+        close_time: {
+          [Op.gte]: dateTimestart,
+          [Op.lt]: dateTimeEnd
+        }
+      }
+    })
+    this.LOG.info(args.uuid, '/dayJobProfitPlatformCheck items', items.length)
+    if (items.length <= 0) {
+      return ret
+    }
+
+    let userGroupList = await assetsModel.getUserGroup(date)
+    this.LOG.info(args.uuid, '/dayJobProfitPlatformCheck userGroupList', userGroupList[0].length, userGroupList[1].length, userGroupList[2].length)
+
+    let itemIds = []
+    for (let index = 0; index < items.length; index++) {
+
+      let item = items[index];
+      this.LOG.info(args.uuid, '/dayJobProfitPlatformCheck item', item.id)
+
+      try {
         item.profit_day_status = 1
-        let itemUpdate = await item.save(opts)
-        if (!itemUpdate){
+        let itemUpdate = await item.save()
+        if (!itemUpdate) {
           throw new Error('更新订单数据失败')
         }
 
         let itemProfit = (item.price - item.price_cost) * item.num
-        profitTotal += itemProfit
-
-        let itemProfitUser = (item.package_level > 0) ? parseInt(itemProfit * 50 / 100) : 0
-        // 平台利润
         let itemProfitPlatform = parseInt(itemProfit * 10 / 100)
-        profitPlatform += itemProfitPlatform
-        // 销售团队利润
-        let itemProfitSell = parseInt((itemProfit - itemProfitUser - itemProfitPlatform) * 30 / 100)
-        this.LOG.info(args.uuid, '/dayJobProfitPlatformCheck itemProfitSell',itemProfitSell)
-        profitSell += itemProfitSell
-
-      }
-      this.LOG.info(args.uuid, '/dayJobProfitPlatformCheck profitTotal',profitTotal)
-      this.LOG.info(args.uuid, '/dayJobProfitPlatformCheck profitPlatform',profitPlatform)
-      this.LOG.info(args.uuid, '/dayJobProfitPlatformCheck profitSell',profitSell)
-
-      // 计算收益分组
-      // let profitPlatformGroup = []
-      let profitPlatformGroup0 = parseInt(profitPlatform * 20 / 100)
-      let profitPlatformGroup1 = parseInt(profitPlatform * 35 / 100)
-      let profitPlatformGroup2 = profitPlatform - profitPlatformGroup0 - profitPlatformGroup1
-      let profitPlatformGroup = [profitPlatformGroup0, profitPlatformGroup1, profitPlatformGroup2]
-      this.LOG.info(args.uuid, '/dayJobProfitPlatformCheck profitPlatformGroup', profitPlatformGroup)
-
-      // 获取今日可分润用户
-      let userGroupList = await profitModel.getUserGroup(date)
-      this.LOG.info(args.uuid, '/dayJobProfitPlatformCheck userGroupList', userGroupList)
-
-      // 计算
-      for (let index = 0; index < profitPlatformGroup.length; index++) {
-        let profitPlatformGroupItem = profitPlatformGroup[index]
-        let userGroupItems = userGroupList[index]
-        this.LOG.info(args.uuid, '/dayJobProfitPlatformCheck userGroupItems', userGroupItems)
-        if (userGroupItems.length) {
-          let profitUser = parseInt(profitPlatformGroupItem /  userGroupItems.length)
-          this.LOG.info(args.uuid, '/dayJobProfitPlatformCheck profitUser', profitUser)
-          for (let indexU = 0; indexU < userGroupItems.length; indexU++) {
-            let userId = userGroupItems[indexU];
-            this.LOG.info(args.uuid, '/dayJobProfitPlatformCheck profitUser', userId, profitUser)
-            let profitCreateRet = await this._createByDay({date: date , amount: profitUser, user_id: userId}, {code: 0 , message: ''}, opts)
-            if (profitCreateRet.code) {
-              throw new Error('添加用户收益数据失败')
-            }
-
-            // 减去用户profitConfig.amount
-            
-          }
-        }else {
-          this.LOG.info(args.uuid, '/dayJobProfitPlatformCheck userGroupItems 0:',index)
+        let itemProfitUser = 0
+        if (item.package_level) {
+          itemProfitUser = parseInt(itemProfit * 50 / 100)
         }
+        let itemProfitSell = parseInt((itemProfit - itemProfitUser - itemProfitPlatform) * 30 / 100)
+        this.LOG.info(args.uuid, '/dayJobProfitPlatformCheck itemProfit', itemProfit)
+        this.LOG.info(args.uuid, '/dayJobProfitPlatformCheck itemProfitPlatform', itemProfitPlatform)
+        this.LOG.info(args.uuid, '/dayJobProfitPlatformCheck itemProfitSell', itemProfitSell)
+
+        let profitPlatformGroup0 = parseInt(itemProfitPlatform * 20 / 100)
+        let profitPlatformGroup1 = parseInt(itemProfitPlatform * 35 / 100)
+        let profitPlatformGroup2 = itemProfitPlatform - profitPlatformGroup0 - profitPlatformGroup1
+        let profitPlatformGroup = [profitPlatformGroup0, profitPlatformGroup1, profitPlatformGroup2]
+        this.LOG.info(args.uuid, '/dayJobProfitPlatformCheck profitPlatformGroup', profitPlatformGroup)
+
+        for (let index1 = 0; index1 < profitPlatformGroup.length; index1++) {
+          let profitPlatformGroupItem = profitPlatformGroup[index1];
+          let userGroupItems = userGroupList[index1]
+          this.LOG.info(args.uuid, '/dayJobProfitPlatformCheck userGroupItems', userGroupItems)
+          if (userGroupItems.length) {
+            let profitUser = parseInt(profitPlatformGroupItem / userGroupItems.length)
+            this.LOG.info(args.uuid, '/dayJobProfitPlatformCheck profitUser', profitUser)
+            for (let indexU = 0; indexU < userGroupItems.length; indexU++) {
+
+              let t = await profitModel.getTrans()
+              let opts = {
+                transaction: t
+              }
+              let userId = userGroupItems[indexU];
+              this.LOG.info(args.uuid, '/dayJobProfitPlatformCheck profitUser', userId, profitUser)
+              let profitCreateRet = await this._createByDay({
+                date: date,
+                amount: profitUser,
+                user_id: userId
+              }, {
+                code: 0,
+                message: ''
+              }, opts)
+              if (profitCreateRet.code) {
+                this.LOG.error(args.uuid, '/dayJobProfitPlatformCheck profitCreateRet', profitCreateRet)
+                await t.rollback()
+                // throw new Error('添加用户收益数据失败')
+              } else {
+                await t.commit()
+              }
+
+            }
+          } else {
+            this.LOG.info(args.uuid, '/dayJobProfitPlatformCheck userGroupItems 0:', index)
+          }
+
+        }
+
+        itemIds.push(item.id)
+      } catch (err) {
+        console.error(err)
+        this.LOG.error(args.uuid, '/dayJobProfitPlatformCheck err', err.message)
       }
 
-      // 添加每日收益数据
-      let dateDate = {}
-      dateDate.date = date
-      dateDate.total = profitTotal
-      dateDate.sell = profitSell
-      dateDate.platform = profitPlatform
-      dateDate.platform_0 = profitPlatformGroup[0]
-      dateDate.platform_1 = profitPlatformGroup[1]
-      dateDate.platform_1 = profitPlatformGroup[2]
-      dateDate.people = userGroupList[0].length + userGroupList[1].length + userGroupList[2].length
-      dateDate.people_0 = userGroupList[0].length
-      dateDate.people_1 = userGroupList[1].length
-      dateDate.people_2 = userGroupList[2].length
-      let dateDateRet = await profitModel.dateDataSet(dateDate, opts)
-      if (!dateDateRet) {
-        throw new Error('添加每日收益数据失败')
-      }
-      await t.commit()
-    } catch (err) {
-      console.error(err)
-      ret.code = 1
-      ret.message = err.message 
-      await t.rollback()
     }
 
+    ret.data = itemIds
     return ret
 
   }
@@ -448,6 +436,7 @@ class ProfitController extends Controller {
 
     let date = args.date || this.UTILS.dateUtils.dateFormat(null, 'YYYY-MM-DD')
     let profitModel = new this.MODELS.profitModel
+    let assetsModel = new this.MODELS.assetsModel
 
     let profit = await profitModel.model().findOne({
       where: {
@@ -458,22 +447,33 @@ class ProfitController extends Controller {
     })
 
     if (profit) {
-      profit.amount = amount
+      profit.amount = profit.amount + amount
       await profit.save(opts)
+    } else {
+      profit = await profitModel.model().create({
+        user_id: args.user_id,
+        type: 2,
+        date: date,
+        amount: amount,
+        order_id: 0,
+        goods_id: 0,
+        status: 1
+      }, opts)
     }
 
-    profit = await profitModel.model().create({
-      user_id: args.user_id,
-      type: 2,
-      date: date,
-      amount: amount,
-      order_id: 0,
-      goods_id: 0
-    }, opts)
+
 
     if (!profit) {
       ret.code = 1
       ret.message = '创建失败'
+      return ret
+    }
+
+    let t = opts.transaction || null
+    let assetsRet = await assetsModel.logCharge(userId, amount, t, true)
+    if (!assetsRet) {
+      ret.code = 1
+      ret.message = '添加用户收益数据失败'
       return ret
     }
 
@@ -519,7 +519,7 @@ class ProfitController extends Controller {
    * @param {*} args 
    * @param {*} ret 
    */
-  async updateItemStatus(args, ret) {
+  async updateItemStatus(args, ret, t = null) {
     this.LOG.info(args.uuid, '/updateItem', args)
     let id = args.id
     let profitModel = new this.MODELS.profitModel
@@ -533,7 +533,7 @@ class ProfitController extends Controller {
     }
 
     let opts = {}
-    if (args.t) {
+    if (t) {
       opts.transaction = t
     }
 
