@@ -112,9 +112,9 @@ class ProfitController extends Controller {
    */
   async dayJobProfitCheck(args, ret) {
     this.LOG.info(args.uuid, '/dayJobProfitCheck', args)
-    let orderModel = new this.MODELS.orderModel
+    let orderItemModel = new this.MODELS.orderItemModel
     // let now = parseInt(Date.now() / 1000)
-    let list = await orderModel.model().findAll({
+    let list = await orderItemModel.model().findAll({
       where: {
         status: 3,
         profit_status: 0 // 为进行收益处理的
@@ -125,7 +125,13 @@ class ProfitController extends Controller {
     let len = 0
     for (let index = 0; list < array.length; index++) {
       let item = list[index];
-      let createRet = await this._createByOrderItem({uuid: args.uuid, id: item}, {code: 0, message: ''})
+      let createRet = await this._createByOrderItem({
+        uuid: args.uuid,
+        id: item.id
+      }, {
+        code: 0,
+        message: ''
+      })
       this.LOG.info(args.uuid, '/list createRet', item.id, createRet)
       if (createRet.code === 0) {
         len++
@@ -141,46 +147,36 @@ class ProfitController extends Controller {
   }
 
   async _createByOrderItem(args, ret, opts = {}) {
-
-  }
-
-  /**
-   * 创建订单收益
-   * @param {*} args 
-   * @param {*} ret 
-   */
-  async createByOrder(args, ret) {
-    this.LOG.info(args.uuid, '/createByOrder', args)
-    let orderId = args.order_id || args.id || 0
-    // let date = this.UTILS.dateUtils.dateFormat(null, 'YYYY-MM-DD')
-
+    this.LOG.info(args.uuid, '/_createByOrderItem', args)
     let orderItemModel = new this.MODELS.orderItemModel
-    let orderModel = new this.MODELS.orderModel
     let profitModel = new this.MODELS.profitModel
 
-    let t = await orderModel.getTrans()
-    let retData = []
-    try {
+    let t = opts.transaction || null
+    if (!t) {
+      t = await orderItemModel.getTrans()
+      opts.transaction = t
+    }
 
-      let order = await orderModel.model().findByPk(orderId)
-      if (!order || order.status != 3) {
-        throw new Error('订单状态错误')
+    try {
+      let orderItem = await orderItemModel.model().findByPk(args.id)
+      let userId = orderItem.user_id
+      let profitTotal = (item.price - item.price_cost) * item.num // 总利润
+
+      let profitLimit = orderItem.package_profit || 0 // 用户收益额度
+      let profitLevel = orderItem.package_level || 0
+
+      orderItem.profit_status = 1
+      let updateItemRet = await orderItem.save(opts)
+      if (!updateItemRet) {
+        throw new Error('更改订单商品收益处理状态失败')
       }
 
-      let orderItems = await orderItemModel.model().findAll({
-        where: {
-          order_id: orderId
-        }
-      })
-
-      for (let index = 0; index < orderItems.length; index++) {
-        let item = orderItems[index];
-        let profitTotal = (item.price - item.price_cost) * item.num // 总利润
-
+      if (profitLevel) {
+        // 分润等级
         let profitDays = 5
         let profitAmount = parseInt(profitTotal / 2 / profitDays)
 
-        for (let j = 0; j < profitDays; j++) {
+        for (let j = 1; j <= profitDays; j++) {
           let dateTimestamp = parseInt(Date.now() / 1000) + j * 24 * 3600
           let dateJ = this.UTILS.dateUtils.dateFormat(dateTimestamp, 'YYYY-MM-DD')
           let profit = await profitModel.model().findOne({
@@ -200,22 +196,91 @@ class ProfitController extends Controller {
               type: 1,
               user_id: order.user_id,
               amount: profitAmount
-            })
+            }, opts)
 
             if (!profit) {
               throw new Error('记录收益失败')
             }
-
-            retData.push(profit.id)
           }
         }
 
       }
-      t.commit()
+
+      // profit user config
+      let date = parseInt(Date.now() / 1000) + (profitDays + 1) * 24 * 3600
+      let profitConfig = await profitModel.configSet(userId, {
+        limit: profitLimit,
+        level: profitLevel,
+        date: date
+      }, opts)
+      if (!profitConfig) {
+        throw new Error('设置用户分润出现问题')
+      }
+
+      await t.commit()
+
+    } catch (err) {
+      ret.code = 1
+      ret.message = err.message || 'createProfitByOrder error'
+      await t.rollback()
+    }
+
+    return ret
+
+
+  }
+
+  /**
+   * 创建订单收益
+   * @param {*} args 
+   * @param {*} ret 
+   */
+  async createByOrder(args, ret) {
+    this.LOG.info(args.uuid, '/createByOrder', args)
+    let orderId = args.order_id || args.id || 0
+    // let date = this.UTILS.dateUtils.dateFormat(null, 'YYYY-MM-DD')
+
+    let orderItemModel = new this.MODELS.orderItemModel
+    let orderModel = new this.MODELS.orderModel
+    // let profitModel = new this.MODELS.profitModel
+    let t = await orderModel.getTrans()
+    let opts = {
+      transaction: t
+    }
+    let retData = []
+    try {
+
+      let order = await orderModel.model().findByPk(orderId)
+      if (!order || order.status != 3) {
+        throw new Error('订单状态错误')
+      }
+
+      let orderItems = await orderItemModel.model().findAll({
+        where: {
+          order_id: orderId
+        }
+      })
+
+      for (let index = 0; index < orderItems.length; index++) {
+        let item = orderItems[index];
+
+        let createRet = await this._createByOrderItem({
+          uuid: args.uuid,
+          id: item.id
+        }, {
+          code: 0,
+          message: ''
+        }, opts)
+        this.LOG.info(args.uuid, '/list createRet', item.id, createRet)
+        if (createRet.code === 0) {
+          len++
+        }
+
+      }
+
     } catch (err) {
       ret.code = 1
       ret.message = err.message || 'createByOrder error'
-      t.rollback()
     }
 
     ret.data = retData

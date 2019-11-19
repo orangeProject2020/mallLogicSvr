@@ -114,6 +114,40 @@ class profitModel extends Model {
       }
     );
   }
+
+  /**
+   * 用户收益设置
+   * @param {*} userId 
+   * @param {*} data 
+   * @param {*} opts 
+   */
+  async configSet(userId, data = {}, opts = {}) {
+    let item = await this.configModel().findOne({
+      where: {
+        user_id: userId
+      }
+    })
+
+    if (item) {
+      item.limit = item.limit + data.limit
+      item.date = data.data
+      if (data.level && data.level > item.level) {
+        item.level = data.level
+      }
+
+      let updateRet = await item.save(opts)
+      return updateRet
+    } else {
+      item = await this.configModel().create({
+        user_id: userId,
+        limit: data.limit || 0,
+        date: data.date || '',
+        const: 0
+      }, opts)
+    }
+
+    return item
+  }
 }
 
 module.exports = profitModel
