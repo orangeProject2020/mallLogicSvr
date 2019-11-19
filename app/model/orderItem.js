@@ -78,6 +78,18 @@ class OrderItemModel extends Model {
         total: {
           type: Sequelize.BIGINT(11),
           defaultValue: 0
+        },
+        package_level: {
+          type: Sequelize.INTEGER(2),
+          defaultValue: 0
+        },
+        package_profit: {
+          type: Sequelize.BIGINT(11),
+          defaultValue: 0
+        },
+        profit_status: {
+          type: Sequelize.INTEGER(2),
+          defaultValue: 0
         }
       }, {
         timestamps: true,

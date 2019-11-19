@@ -110,8 +110,38 @@ class ProfitController extends Controller {
    * @param {*} args 
    * @param {*} ret 
    */
-  async dayJobCreateProfit(args, ret) {
-    this.LOG.info(args.uuid, '/dayJobCreateProfit', args)
+  async dayJobProfitCheck(args, ret) {
+    this.LOG.info(args.uuid, '/dayJobProfitCheck', args)
+    let orderModel = new this.MODELS.orderModel
+    // let now = parseInt(Date.now() / 1000)
+    let list = await orderModel.model().findAll({
+      where: {
+        status: 3,
+        profit_status: 0 // 为进行收益处理的
+      }
+    })
+
+    this.LOG.info(args.uuid, '/list length', list.length)
+    let len = 0
+    for (let index = 0; list < array.length; index++) {
+      let item = list[index];
+      let createRet = await this._createByOrderItem({uuid: args.uuid, id: item}, {code: 0, message: ''})
+      this.LOG.info(args.uuid, '/list createRet', item.id, createRet)
+      if (createRet.code === 0) {
+        len++
+      }
+    }
+
+    ret.data = {
+      success: len,
+      fail: list.length - len
+    }
+
+    return ret
+  }
+
+  async _createByOrderItem(args, ret, opts = {}) {
+
   }
 
   /**
@@ -146,6 +176,7 @@ class ProfitController extends Controller {
       for (let index = 0; index < orderItems.length; index++) {
         let item = orderItems[index];
         let profitTotal = (item.price - item.price_cost) * item.num // 总利润
+
         let profitDays = 5
         let profitAmount = parseInt(profitTotal / 2 / profitDays)
 

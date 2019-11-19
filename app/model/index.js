@@ -7,5 +7,6 @@ module.exports = {
   statisticsModel: require('./statistics'),
   profitModel: require('./profit'),
   assetsModel: require('./assets'),
-  withdrawModel: require('./withdraw')
+  withdrawModel: require('./withdraw'),
+  collectModel: require('./collect')
 }

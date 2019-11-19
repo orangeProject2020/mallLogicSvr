@@ -98,6 +98,14 @@ class GoodsModel extends Model {
         update_user: {
           type: Sequelize.STRING(64),
           defaultValue: ''
+        },
+        package_level: {
+          type: Sequelize.INTEGER(2),
+          defaultValue: 0
+        },
+        package_profit: {
+          type: Sequelize.BIGINT(11),
+          defaultValue: 0
         }
       }, {
         timestamps: true,

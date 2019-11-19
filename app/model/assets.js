@@ -92,7 +92,7 @@ class AssetsModel extends Model {
    * 获取单个用户资产
    * @param {*} userId 
    */
-  getItemByUserId(userId) {
+  async getItemByUserId(userId) {
     let data = await this.model().findOne({
       where: {
         user_id: userId
@@ -113,7 +113,7 @@ class AssetsModel extends Model {
    * @param {*} userId 
    * @param {*} balance 
    */
-  logCharge(userId, balance, t = null) {
+  async logCharge(userId, balance, t = null) {
     let assets = await this.getItemByUserId(userId)
     let opts = {}
     if (t) {
@@ -136,7 +136,7 @@ class AssetsModel extends Model {
    * @param {*} userId 
    * @param {*} balance 
    */
-  logWithdraw(userId, balance, t = null) {
+  async logWithdraw(userId, balance, t = null) {
     let assets = await this.getItemByUserId(user_id)
     let opts = {}
     if (t) {

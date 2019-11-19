@@ -108,6 +108,8 @@ class OrderController extends Controller {
           itemData.type = goods.type
           itemData.score = goods.score || 0
           itemData.total = goodsPrice * num
+          itemData.package_level = goods.package_level || 0
+          itemData.package_profit = goods.package_profit || 0
 
           let orderItem = await orderItemModel.model().create(itemData, opts)
           if (!orderItem) {
