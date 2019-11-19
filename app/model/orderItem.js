@@ -90,6 +90,14 @@ class OrderItemModel extends Model {
         profit_status: {
           type: Sequelize.INTEGER(2),
           defaultValue: 0
+        },
+        profit_day_status: {
+          type: Sequelize.INTEGER(2),
+          defaultValue: 0
+        },
+        close_time: {
+          type: Sequelize.BIGINT(11),
+          defaultValue: 0
         }
       }, {
         timestamps: true,

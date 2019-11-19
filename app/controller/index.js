@@ -3,7 +3,8 @@ const methods = {
   goods: require('./goods'),
   order: require('./order'),
   payment: require('./payment'),
-  statistics: require('./statistics')
+  statistics: require('./statistics'),
+  profit: require('./profit')
 }
 
 let METHODS = {}

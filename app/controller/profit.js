@@ -106,11 +106,11 @@ class ProfitController extends Controller {
   }
 
   /**
-   * 生成每日收益
+   * 生成每日客户收益
    * @param {*} args 
    * @param {*} ret 
    */
-  async dayJobProfitCheck(args, ret) {
+  async dayJobProfitUserCheck(args, ret) {
     this.LOG.info(args.uuid, '/dayJobProfitCheck', args)
     let orderItemModel = new this.MODELS.orderItemModel
     // let now = parseInt(Date.now() / 1000)
@@ -121,10 +121,11 @@ class ProfitController extends Controller {
       }
     })
 
-    this.LOG.info(args.uuid, '/list length', list.length)
+    this.LOG.info(args.uuid, '/dayJobProfitUserCheck list length', list.length)
     let len = 0
-    for (let index = 0; list < array.length; index++) {
+    for (let index = 0; index < list.length; index++) {
       let item = list[index];
+      this.LOG.info(args.uuid, '/dayJobProfitUserCheck item', item)
       let createRet = await this._createByOrderItem({
         uuid: args.uuid,
         id: item.id
@@ -146,6 +147,12 @@ class ProfitController extends Controller {
     return ret
   }
 
+  /**
+   * 生成收益数据by订单物品
+   * @param {*} args 
+   * @param {*} ret 
+   * @param {*} opts 
+   */
   async _createByOrderItem(args, ret, opts = {}) {
     this.LOG.info(args.uuid, '/_createByOrderItem', args)
     let orderItemModel = new this.MODELS.orderItemModel
@@ -159,11 +166,15 @@ class ProfitController extends Controller {
 
     try {
       let orderItem = await orderItemModel.model().findByPk(args.id)
+      this.LOG.info(args.uuid, '/_createByOrderItem orderItem', orderItem)
       let userId = orderItem.user_id
-      let profitTotal = (item.price - item.price_cost) * item.num // 总利润
+      let profitTotal = (orderItem.price - orderItem.price_cost) * orderItem.num // 总利润
+      this.LOG.info(args.uuid, '/_createByOrderItem profitTotal', profitTotal)
 
       let profitLimit = orderItem.package_profit || 0 // 用户收益额度
       let profitLevel = orderItem.package_level || 0
+      this.LOG.info(args.uuid, '/_createByOrderItem profitLimit', profitLimit)
+      this.LOG.info(args.uuid, '/_createByOrderItem profitLevel', profitLevel)
 
       orderItem.profit_status = 1
       let updateItemRet = await orderItem.save(opts)
@@ -171,18 +182,34 @@ class ProfitController extends Controller {
         throw new Error('更改订单商品收益处理状态失败')
       }
 
+      let profitDays = 0
       if (profitLevel) {
         // 分润等级
-        let profitDays = 5
+        profitDays = 5
         let profitAmount = parseInt(profitTotal / 2 / profitDays)
+        this.LOG.info(args.uuid, '/_createByOrderItem profitAmount', profitAmount)
+
+        let date = parseInt(Date.now() / 1000) + (profitDays + 1) * 24 * 3600
+        date = this.UTILS.dateUtils.dateFormat(date, 'YYYY-MM-DD')
+        this.LOG.info(args.uuid, '/_createByOrderItem date', date)
+        let profitConfig = await profitModel.configSet(userId, {
+          limit: profitLimit,
+          level: profitLevel,
+          date: date
+        }, opts)
+        this.LOG.info(args.uuid, '/_createByOrderItem profitConfig', profitConfig)
+        if (!profitConfig) {
+          throw new Error('设置用户分润出现问题')
+        }
 
         for (let j = 1; j <= profitDays; j++) {
           let dateTimestamp = parseInt(Date.now() / 1000) + j * 24 * 3600
           let dateJ = this.UTILS.dateUtils.dateFormat(dateTimestamp, 'YYYY-MM-DD')
+          this.LOG.info(args.uuid, '/_createByOrderItem dateJ', dateJ)
           let profit = await profitModel.model().findOne({
             where: {
-              order_id: orderId,
-              goods_id: item.goods_id,
+              order_id: orderItem.order_id,
+              goods_id: orderItem.goods_id,
               date: dateJ
             }
           })
@@ -190,44 +217,37 @@ class ProfitController extends Controller {
             continue
           } else {
             profit = await profitModel.model().create({
-              order_id: orderId,
-              goods_id: item.goods_id,
+              order_id: orderItem.order_id,
+              goods_id: orderItem.goods_id,
               date: dateJ,
               type: 1,
-              user_id: order.user_id,
+              user_id: userId,
               amount: profitAmount
             }, opts)
-
+            this.LOG.info(args.uuid, '/_createByOrderItem profit', profit)
             if (!profit) {
               throw new Error('记录收益失败')
             }
           }
         }
 
+
+
       }
 
       // profit user config
-      let date = parseInt(Date.now() / 1000) + (profitDays + 1) * 24 * 3600
-      let profitConfig = await profitModel.configSet(userId, {
-        limit: profitLimit,
-        level: profitLevel,
-        date: date
-      }, opts)
-      if (!profitConfig) {
-        throw new Error('设置用户分润出现问题')
-      }
+
 
       await t.commit()
 
     } catch (err) {
+      console.error(err)
       ret.code = 1
       ret.message = err.message || 'createProfitByOrder error'
       await t.rollback()
     }
 
     return ret
-
-
   }
 
   /**
@@ -289,11 +309,134 @@ class ProfitController extends Controller {
   }
 
   /**
+   * 每日平台返利结算
+   * @param {*} args 
+   * @param {*} ret 
+   */
+  async dayJobProfitPlatformCheck(args, ret) {
+    this.LOG.info(args.uuid, '/dayJobProfitPlatformCheck', args)
+    let date = args.date || this.UTILS.dateUtils.dateFormat(null, 'YYYY-MM-DD')
+    let dateTimestart = this.UTILS.dateUtils.getTimestamp(date + ' 00:00:00')
+    let dateTimeEnd = this.UTILS.dateUtils.getTimestamp(date + ' 23:59:59')
+
+    let orderItemModel = new this.MODELS.orderItemModel
+    let profitModel = new this.MODELS.profitModel
+    let t = await profitModel.getTrans()
+    let opts = {
+      transaction: t
+    }
+    try {
+      // 首先获取今日可结算收益
+      let items = await orderItemModel.model().findAll({
+        where: {
+          status: 3,
+          profit_day_status: 0,
+          close_time: {
+            [Op.gte]: dateTimestart,
+            [Op.lt]: dateTimeEnd
+          }
+        }
+      })
+      this.LOG.info(args.uuid, '/dayJobProfitPlatformCheck items', items.length)
+
+      let profitTotal = 0
+      let profitPlatform = 0
+      let profitSell = 0
+      for (let index = 0; index < items.length; index++) {
+        let item = items[index]
+        item.profit_day_status = 1
+        let itemUpdate = await item.save(opts)
+        if (!itemUpdate){
+          throw new Error('更新订单数据失败')
+        }
+
+        let itemProfit = (item.price - item.price_cost) * item.num
+        profitTotal += itemProfit
+
+        let itemProfitUser = (item.package_level > 0) ? parseInt(itemProfit * 50 / 100) : 0
+        // 平台利润
+        let itemProfitPlatform = parseInt(itemProfit * 10 / 100)
+        profitPlatform += itemProfitPlatform
+        // 销售团队利润
+        let itemProfitSell = parseInt((itemProfit - itemProfitUser - itemProfitPlatform) * 30 / 100)
+        this.LOG.info(args.uuid, '/dayJobProfitPlatformCheck itemProfitSell',itemProfitSell)
+        profitSell += itemProfitSell
+
+      }
+      this.LOG.info(args.uuid, '/dayJobProfitPlatformCheck profitTotal',profitTotal)
+      this.LOG.info(args.uuid, '/dayJobProfitPlatformCheck profitPlatform',profitPlatform)
+      this.LOG.info(args.uuid, '/dayJobProfitPlatformCheck profitSell',profitSell)
+
+      // 计算收益分组
+      // let profitPlatformGroup = []
+      let profitPlatformGroup0 = parseInt(profitPlatform * 20 / 100)
+      let profitPlatformGroup1 = parseInt(profitPlatform * 35 / 100)
+      let profitPlatformGroup2 = profitPlatform - profitPlatformGroup0 - profitPlatformGroup1
+      let profitPlatformGroup = [profitPlatformGroup0, profitPlatformGroup1, profitPlatformGroup2]
+      this.LOG.info(args.uuid, '/dayJobProfitPlatformCheck profitPlatformGroup', profitPlatformGroup)
+
+      // 获取今日可分润用户
+      let userGroupList = await profitModel.getUserGroup(date)
+      this.LOG.info(args.uuid, '/dayJobProfitPlatformCheck userGroupList', userGroupList)
+
+      // 计算
+      for (let index = 0; index < profitPlatformGroup.length; index++) {
+        let profitPlatformGroupItem = profitPlatformGroup[index]
+        let userGroupItems = userGroupList[index]
+        this.LOG.info(args.uuid, '/dayJobProfitPlatformCheck userGroupItems', userGroupItems)
+        if (userGroupItems.length) {
+          let profitUser = parseInt(profitPlatformGroupItem /  userGroupItems.length)
+          this.LOG.info(args.uuid, '/dayJobProfitPlatformCheck profitUser', profitUser)
+          for (let indexU = 0; indexU < userGroupItems.length; indexU++) {
+            let userId = userGroupItems[indexU];
+            this.LOG.info(args.uuid, '/dayJobProfitPlatformCheck profitUser', userId, profitUser)
+            let profitCreateRet = await this._createByDay({date: date , amount: profitUser, user_id: userId}, {code: 0 , message: ''}, opts)
+            if (profitCreateRet.code) {
+              throw new Error('添加用户收益数据失败')
+            }
+
+            // 减去用户profitConfig.amount
+            
+          }
+        }else {
+          this.LOG.info(args.uuid, '/dayJobProfitPlatformCheck userGroupItems 0:',index)
+        }
+      }
+
+      // 添加每日收益数据
+      let dateDate = {}
+      dateDate.date = date
+      dateDate.total = profitTotal
+      dateDate.sell = profitSell
+      dateDate.platform = profitPlatform
+      dateDate.platform_0 = profitPlatformGroup[0]
+      dateDate.platform_1 = profitPlatformGroup[1]
+      dateDate.platform_1 = profitPlatformGroup[2]
+      dateDate.people = userGroupList[0].length + userGroupList[1].length + userGroupList[2].length
+      dateDate.people_0 = userGroupList[0].length
+      dateDate.people_1 = userGroupList[1].length
+      dateDate.people_2 = userGroupList[2].length
+      let dateDateRet = await profitModel.dateDataSet(dateDate, opts)
+      if (!dateDateRet) {
+        throw new Error('添加每日收益数据失败')
+      }
+      await t.commit()
+    } catch (err) {
+      console.error(err)
+      ret.code = 1
+      ret.message = err.message 
+      await t.rollback()
+    }
+
+    return ret
+
+  }
+  /**
    * 创建每日返利
    * @param {*} args 
    * @param {*} ret 
    */
-  async createByDay(args, ret) {
+  async _createByDay(args, ret, opts = {}) {
     this.LOG.info(args.uuid, '/createByDay', args)
     let userId = args.user_id
     let amount = args.amount || 0
@@ -315,9 +458,8 @@ class ProfitController extends Controller {
     })
 
     if (profit) {
-      ret.code = 1
-      ret.message = '已创建'
-      return ret
+      profit.amount = amount
+      await profit.save(opts)
     }
 
     profit = await profitModel.model().create({
@@ -327,7 +469,7 @@ class ProfitController extends Controller {
       amount: amount,
       order_id: 0,
       goods_id: 0
-    })
+    }, opts)
 
     if (!profit) {
       ret.code = 1
@@ -350,7 +492,7 @@ class ProfitController extends Controller {
 
     let date = args.date || this.UTILS.dateUtils.dateFormat(null, 'YYYY-MM-DD')
 
-    let list = await profitModel.model().findOne({
+    let list = await profitModel.model().findAll({
       where: {
         date: {
           [Op.lte]: date

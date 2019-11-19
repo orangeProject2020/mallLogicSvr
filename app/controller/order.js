@@ -109,7 +109,7 @@ class OrderController extends Controller {
           itemData.score = goods.score || 0
           itemData.total = goodsPrice * num
           itemData.package_level = goods.package_level || 0
-          itemData.package_profit = goods.package_profit ? (goods.package_profit * num) || 0
+          itemData.package_profit = goods.package_profit ? (goods.package_profit * num) : 0
 
           let orderItem = await orderItemModel.model().create(itemData, opts)
           if (!orderItem) {
@@ -553,6 +553,12 @@ class OrderController extends Controller {
       for (let index = 0; index < orderItems.length; index++) {
         let item = orderItems[index];
         item.status = status
+        // 订单关闭时间
+        if (item.package_level > 0){
+          item.close_time = now 
+        } else {
+          item.close_time = now + 7 * 24 * 3600
+        }
         let itemRet = await item.save(opts)
         if (!itemRet) {
           throw new Error('更新订单商品状态失败')
