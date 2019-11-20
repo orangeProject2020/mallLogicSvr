@@ -42,6 +42,10 @@ class WithdrawModel extends Model {
       audit_user: {
         type: Sequelize.STRING(64),
         defaultValue: ''
+      },
+      audit_remark: {
+        type: Sequelize.STRING(255),
+        defaultValue: ''
       }
 
     }, {

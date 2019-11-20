@@ -16,10 +16,17 @@ class WithDrawController extends Controller {
     let opts = {}
 
     if (args.hasOwnProperty('status')) {
-      where.status = status
+      if (args.status === 0) {
+        where.status = {
+          [Op.in]:[0,-1]
+        }
+      } else {
+        where.status = args.status
+      }
+      
     }
     if (args.hasOwnProperty('user_id')) {
-      where.user_id = args.userId
+      where.user_id = args.user_id
     }
 
     opts.where = where
@@ -39,7 +46,7 @@ class WithDrawController extends Controller {
 
     let withdrawRet = await withdrawModel.model().findAndCountAll(opts)
     this.LOG.info(args.uuid, '/list withdrawRet', withdrawRet)
-    ret.data = goodsRet
+    ret.data = withdrawRet
 
     return ret
   }
@@ -83,6 +90,9 @@ class WithDrawController extends Controller {
     let assetsModel = new this.MODELS.assetsModel
 
     let withdraw = await withdrawModel.model().findByPk(id)
+    if (withdraw.status == -1){
+      withdraw.status = 0
+    }
     if (!withdraw || withdraw.status !== 0 || withdraw.user_id != userId){
       ret.code = 1
       ret.message = '无效数据'
@@ -138,6 +148,7 @@ class WithDrawController extends Controller {
         transaction: t
       }
       let withdraw = await withdrawModel.model().findByPk(id)
+      this.LOG.info(args.uuid, '/audit withdraw', withdraw)
       if (!withdraw || withdraw.status !== 1){
         throw new Error('无效数据')
       }
@@ -145,6 +156,7 @@ class WithDrawController extends Controller {
       let amount = withdraw.amount
 
       let userAssets = await assetsModel.getItemByUserId(userId)
+      this.LOG.info(args.uuid, '/audit userAssets', userAssets)
       if (amount > userAssets.balance){
         throw new Error('金额不足')
       }
@@ -153,25 +165,30 @@ class WithDrawController extends Controller {
         // TODO 提现操作
 
         // 记录流水
-        let logRet = assetsModel.logWithdraw(userId, withdraw.amount, t)
+        let logRet = await assetsModel.logWithdraw(userId, withdraw.amount, t)
+        this.LOG.info(args.uuid, '/audit logRet', logRet)
         if (!logRet) {
           throw new Error('记录用户提现失败')
         }
       } 
 
       withdraw.status = status
+      withdraw.audit_remark = args.remark || ''
       withdraw.audit_time = parseInt(Date.now()/ 1000)
       withdraw.audit_user = args.user_id || ''
 
       let updateRet = await withdraw.save(opts)
+      this.LOG.info(args.uuid, '/audit updateRet', updateRet)
       if (!updateRet) {
-        throw new Error('审核失败')
+        throw new Error('更新数据失败')
       }
-      
+      t.commit()
 
     } catch (err) {
+      console.error(err)
       ret.code = 1
       ret.message = err.message 
+      t.rollback()
       return ret
     }
 
