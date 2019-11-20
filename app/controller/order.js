@@ -556,6 +556,10 @@ class OrderController extends Controller {
         // 订单关闭时间
         if (item.package_level > 0){
           item.close_time = now 
+          // 套餐发放提现卡
+          this._withdrawCardSent({uuid: args.uuid, user_id: item.user_id} , {code: 0 , message: ''}).then(ret => {
+            this.LOG.info(args.uuid, '/_updateOrderStatus withdrawCardSent ret', ret)
+          })
         } else {
           item.close_time = now + 7 * 24 * 3600
         }
@@ -567,6 +571,57 @@ class OrderController extends Controller {
     } catch (err) {
       ret.code = 1
       ret.message = err.message || err
+    }
+
+    return ret
+  }
+
+  /**
+   * 发放提现卡
+   * @param {*} args 
+   * @param {*} ret 
+   */
+  async _withdrawCardSent(args, ret) {
+    let pUserRet = await this.API.getParentUser({
+      uuid: args.uuid,
+      user_id: args.user_id
+    })
+    this.LOG.info('/withdrawCardSent pUserRet:' , pUserRet)
+    if (!pUserRet || pUserRet.code !== 0 || !pUserRet.data || !pUserRet.data.user_id){
+      ret.code = 1
+      ret.message = '获取上级用户失败'
+      return ret
+    }
+
+    // 发送提现卡
+    let pUserId = pUserRet.data.user_id
+    this.LOG.info('/withdrawCardSent pUserId:' , pUserId)
+    let sentRet = await this.API.withdarwCardSent({
+      uuid: args.uuid,
+      user_id: pUserId,
+      amount: this.CONFIG.withdraw.card.amount
+    })
+    this.LOG.info('/withdrawCardSent sentRet:' , sentRet)
+
+    if (sentRet.code !== 0) {
+      ret.code = 1
+      ret.message = '发送提现卡失败'
+      return ret
+    }
+
+    // 消息通知
+    let messageData = {
+      user_id: pUserId,
+      info: this.CONFIG.withdraw.message.info
+    }
+    let messageRet = await this.API.messageSent({
+      ...messageData,
+      uuid: args.uuid
+    })
+    if (messageRet.code !== 0) {
+      ret.code = 1
+      ret.message = '发送用户消息失败'
+      return ret
     }
 
     return ret

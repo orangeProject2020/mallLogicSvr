@@ -7,5 +7,11 @@ module.exports = {
     key: 'qsopifkhjjgjgfossfngnjgdsknkjlkljs'
   },
 
-  profitDayRate: []
+  profitDayRate: [],
+  withdraw: {
+    card: {amount: 250 },
+    message: {
+      info: '您收到一张提现卡，请前往个人中心查看'
+    }
+  }
 }

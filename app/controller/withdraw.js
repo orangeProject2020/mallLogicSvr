@@ -51,6 +51,10 @@ class WithDrawController extends Controller {
    */
   async create(args, ret) {
     this.LOG.info(args.uuid, '/create', args)
+    let checkUserRet = await this._checkUser(args, ret)
+    if (checkUserRet.code !== 0) {
+      return checkUserRet
+    }
 
     let userId = args.user_id
     let amount = args.amount
