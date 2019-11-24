@@ -5,7 +5,8 @@ const methods = {
   payment: require('./payment'),
   statistics: require('./statistics'),
   profit: require('./profit'),
-  withdraw: require('./withdraw')
+  withdraw: require('./withdraw'),
+  user: require('./user')
 }
 
 let METHODS = {}
