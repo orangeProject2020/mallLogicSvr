@@ -25,6 +25,7 @@ class WithDrawController extends Controller {
     })
     this.LOG.info(args.uuid, '/infoAssets withdrawCount:', withdrawCount)
 
+    let balance = 0
     let assets = await assetsModel.getItemByUserId(userId)
     this.LOG.info(args.uuid, '/infoAssets assets:', assets)
     let profit = await profitModel.model().sum('amount', {
@@ -33,10 +34,18 @@ class WithDrawController extends Controller {
       }
     })
     this.LOG.info(args.uuid, '/infoAssets profit:', profit)
+    let withdrawApplySum = await withdrawModel.model().sum('amount', {
+      where: {
+        user_id: userId,
+        status: 1
+      }
+    })
+    balance = assets.balance - withdrawApplySum
+    balance = (balance > 0) ? balance : 0
 
     ret.data = {
       withdraw: withdrawCount || 0,
-      balance: assets.balance || 0,
+      balance: balance || 0,
       profit: profit || 0
     }
 
