@@ -19,7 +19,7 @@ class ProfitController extends Controller {
       where.status = status
     }
     if (args.hasOwnProperty('user_id')) {
-      where.user_id = args.userId
+      where.user_id = args.user_id
     }
 
     opts.where = where
@@ -39,7 +39,7 @@ class ProfitController extends Controller {
 
     let profitRet = await profitModel.model().findAndCountAll(opts)
     this.LOG.info(args.uuid, '/list profitRet', profitRet)
-    ret.data = goodsRet
+    ret.data = profitRet
 
     return ret
   }
