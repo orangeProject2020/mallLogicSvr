@@ -76,6 +76,15 @@ class GoodsController extends Controller {
     if (args.hasOwnProperty('category_id')) {
       where.category_id = args.category_id
     }
+    if (args.recommend) {
+      where.is_recommend = 1
+    }
+    if (args.new) {
+      where.is_new = 1
+    }
+    if (args.type_sub) {
+      where.type_sub = args.type_sub
+    }
 
     opts.where = where
 
@@ -87,10 +96,13 @@ class GoodsController extends Controller {
       opts.limit = limit
     }
 
-    opts.order = [
-      ['sort', 'asc'],
-      ['create_time', 'desc']
-    ]
+    let order = []
+    if (args.order && typeof args.order === 'object') {
+      order.push(args.order)
+    }
+    order.push(['sort', 'asc'])
+    order.push(['update_time', 'desc'])
+    opts.order = order
     this.LOG.info(args.uuid, '/list opts', opts)
 
     let goodsRet = await goodsModel.model().findAndCountAll(opts)

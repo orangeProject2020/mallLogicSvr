@@ -1,5 +1,5 @@
 const Controller = require('../../lib/controller')
-
+const Op = require('sequelize').Op
 class OrderController extends Controller {
 
   _createOrderNo(args, ret) {
@@ -79,6 +79,25 @@ class OrderController extends Controller {
           let goodsPrice = goods.price
           let goodsScore = goods.score
           orderTotal += parseInt(goodsPrice * num)
+
+          // 判断购买限制
+          if (goods.package_level > 0) {
+            let buyLimitCount = await orderItemModel.model().count('num', {
+              where: {
+                goods_id: goods.id,
+                status: {
+                  [Op.gte]: 1
+                },
+                create_time: {
+                  [Op.gte]: (parseInt(Date.now() / 1000) - 7 * 24 * 3600)
+                }
+              }
+            })
+            if (buyLimitCount > 5) {
+              throw new Error('超过平台套餐购买限制')
+            }
+          }
+
 
           // 判断库存
           if (goods.stock > 0) {
@@ -554,10 +573,16 @@ class OrderController extends Controller {
         let item = orderItems[index];
         item.status = status
         // 订单关闭时间
-        if (item.package_level > 0){
-          item.close_time = now 
+        if (item.package_level > 0) {
+          item.close_time = now
           // 套餐发放提现卡
-          this._withdrawCardSent({uuid: args.uuid, user_id: item.user_id} , {code: 0 , message: ''}).then(ret => {
+          this._withdrawCardSent({
+            uuid: args.uuid,
+            user_id: item.user_id
+          }, {
+            code: 0,
+            message: ''
+          }).then(ret => {
             this.LOG.info(args.uuid, '/_updateOrderStatus withdrawCardSent ret', ret)
           })
         } else {
@@ -586,8 +611,8 @@ class OrderController extends Controller {
       uuid: args.uuid,
       user_id: args.user_id
     })
-    this.LOG.info('/withdrawCardSent pUserRet:' , pUserRet)
-    if (!pUserRet || pUserRet.code !== 0 || !pUserRet.data || !pUserRet.data.user_id){
+    this.LOG.info('/withdrawCardSent pUserRet:', pUserRet)
+    if (!pUserRet || pUserRet.code !== 0 || !pUserRet.data || !pUserRet.data.user_id) {
       ret.code = 1
       ret.message = '获取上级用户失败'
       return ret
@@ -595,13 +620,13 @@ class OrderController extends Controller {
 
     // 发送提现卡
     let pUserId = pUserRet.data.user_id
-    this.LOG.info('/withdrawCardSent pUserId:' , pUserId)
+    this.LOG.info('/withdrawCardSent pUserId:', pUserId)
     let sentRet = await this.API.withdarwCardSent({
       uuid: args.uuid,
       user_id: pUserId,
       amount: this.CONFIG.withdraw.card.amount
     })
-    this.LOG.info('/withdrawCardSent sentRet:' , sentRet)
+    this.LOG.info('/withdrawCardSent sentRet:', sentRet)
 
     if (sentRet.code !== 0) {
       ret.code = 1

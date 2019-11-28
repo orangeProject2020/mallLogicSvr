@@ -106,6 +106,22 @@ class GoodsModel extends Model {
         package_profit: {
           type: Sequelize.BIGINT(11),
           defaultValue: 0
+        },
+        is_recommend: {
+          type: Sequelize.INTEGER(2),
+          defaultValue: 0
+        },
+        is_new: {
+          type: Sequelize.INTEGER(2),
+          defaultValue: 0
+        },
+        type_sub: {
+          type: Sequelize.INTEGER(2),
+          defaultValue: 0
+        },
+        buy_limit: {
+          type: Sequelize.BIGINT,
+          defaultValue: 0
         }
       }, {
         timestamps: true,
