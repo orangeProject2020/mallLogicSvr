@@ -82,8 +82,18 @@ class GoodsController extends Controller {
     if (args.new) {
       where.is_new = 1
     }
+    if (args.package) {
+      where.package_level = {
+        [Op.gt]: 0
+      }
+    }
     if (args.type_sub) {
       where.type_sub = args.type_sub
+    }
+    if (args.search) {
+      where.title = {
+        [Op.like]: '%' + args.search + '%'
+      }
     }
 
     opts.where = where
