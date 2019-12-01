@@ -29,7 +29,7 @@ describe('prifit', () => {
 
     let uuidv4 = uuid.v4()
 
-    let ret = await request.post(DOMAIN + '/mall/profit/dayJobProfitUserClose', {
+    let ret = await request.post(DOMAIN + '/mall/schedule/dayJobProfitUserClose', {
       // user_id: '090d668c-7388-403f-b9b7-0c3eefd665d5',
       // id: orderId
       date: '2019-11-21'

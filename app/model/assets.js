@@ -223,7 +223,7 @@ class AssetsModel extends Model {
 
   }
 
-  async getUserGroup(date) {
+  async getUserGroup(date, field = 'id') {
     let list = await this.model().findAll({
       where: {
         profit: {
@@ -249,7 +249,12 @@ class AssetsModel extends Model {
       if (!group[level - 1]) {
         group[level - 1] = []
       }
-      group[level - 1].push(item.user_id)
+      if (field == 'id') {
+        group[level - 1].push(item.user_id)
+      } else {
+        group[level - 1].push(item)
+      }
+
     }
 
     return group
