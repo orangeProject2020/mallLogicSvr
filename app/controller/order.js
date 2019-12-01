@@ -123,7 +123,7 @@ class OrderController extends Controller {
           itemData.price = goods.price
           itemData.price_cost = goods.price_cost
           itemData.name = goods.name
-          itemData.cover = goods.cover
+          itemData.cover = goods.thumb || goods.cover
           itemData.type = goods.type
           itemData.score = goods.score || 0
           itemData.total = goodsPrice * num

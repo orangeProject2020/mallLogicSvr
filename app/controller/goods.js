@@ -18,6 +18,10 @@ class GoodsController extends Controller {
 
     if (args.hasOwnProperty('status')) {
       where.status = args.status
+    } else {
+      where.status = {
+        [Op.gte]: 0
+      }
     }
     if (args.hasOwnProperty('business_id')) {
       where.business_id = args.business_id || 0
@@ -52,7 +56,40 @@ class GoodsController extends Controller {
    * @param {*} ret 
    */
   async categoryUpdate(args, ret) {
+    this.LOG.info(args.uuid, 'categorys', args)
 
+    let categoryModel = new this.MODELS.categoryModel
+    let data = {}
+    data.id = args.id || 0
+    data.business_id = args.business_id || 0
+    data.name = args.name || ''
+    data.title = args.title || ''
+    data.sort = args.sort || 0
+    data.status = args.status || 0
+    if (data.id) {
+      let category = await categoryModel.model().findByPk(data.id)
+      if (!category) {
+        ret.code = 1
+        ret.message = '无效数据'
+        return ret
+      }
+
+      category.name = data.name
+      category.title = data.title
+      category.status = data.status
+      category.sort = data.sort
+      category.business_id = data.business_id
+      await category.save()
+    } else {
+      let category = await categoryModel.model().create(data)
+      if (!category) {
+        ret.code = 1
+        ret.message = '添加失败'
+        return ret
+      }
+    }
+
+    return ret
   }
 
   /**
@@ -68,7 +105,11 @@ class GoodsController extends Controller {
     let opts = {}
 
     if (args.hasOwnProperty('status')) {
-      where.status = 1
+      where.status = args.status
+    } else {
+      where.status = {
+        [Op.gte]: 0
+      }
     }
     if (args.hasOwnProperty('business_id')) {
       where.business_id = args.business_id || 0
@@ -178,6 +219,7 @@ class GoodsController extends Controller {
     goodsData.description = args.description || ''
     goodsData.type = args.type || 1
     goodsData.cover = args.cover || ''
+    goodsData.thumb = args.thumb || ''
     goodsData.content = args.content || ''
     goodsData.price = args.price || 0
     goodsData.price_market = args.price_market || 0
@@ -190,6 +232,12 @@ class GoodsController extends Controller {
     goodsData.sort = args.sort || 0
     goodsData.status = args.status || 0
     goodsData.create_user = args.user_id || ''
+    goodsData.package_level = args.package_level || 0
+    goodsData.package_profit = args.package_profit || 0
+    goodsData.is_recommend = args.is_recommend || 0
+    goodsData.is_new = args.is_new || 0
+    goodsData.type_sub = args.type_sub || 0
+    goodsData.status = args.status || 0
 
     let goods = await goodsModel.model().create(goodsData)
     if (!goods) {
@@ -246,7 +294,7 @@ class GoodsController extends Controller {
     }
 
     goods.update_user = args.user_id || ''
-    let updateFields = ['category_id', 'sku_id', 'name', 'title', 'description', 'content', 'cover', 'pics', 'price', 'price_cost', 'price_market', 'price_score', 'price_vip', 'stock', 'sales', 'sort', 'status']
+    let updateFields = ['category_id', 'sku_id', 'name', 'title', 'description', 'content', 'cover', 'thumb', 'pics', 'price', 'price_cost', 'price_market', 'price_score', 'price_vip', 'stock', 'sales', 'sort', 'status', 'package_level', 'package_profit', 'is_recommend', 'is_new', 'type_sub', 'status']
     updateFields.forEach(item => {
       if (args.hasOwnProperty(item)) {
         goods[item] = args[item]

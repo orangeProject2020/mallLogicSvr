@@ -59,6 +59,10 @@ class GoodsModel extends Model {
           type: Sequelize.STRING(255),
           defaultValue: ''
         },
+        thumb: {
+          type: Sequelize.STRING(255),
+          defaultValue: ''
+        },
         content: {
           type: Sequelize.TEXT,
           defaultValue: ''
