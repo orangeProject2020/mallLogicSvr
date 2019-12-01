@@ -101,6 +101,16 @@ class ScheduleController extends Controller {
 
         }
       }
+
+      for (let index = 0; index < items.length; index++) {
+        let item = items[index]
+        items.profit_day_status = 1
+        itemUpdate = await items.save()
+        if (!itemUpdate) {
+          throw new Error('更新订单收益状态失败')
+        }
+      }
+
       t.commit()
     } catch (err) {
       ret.code = 1
