@@ -104,8 +104,10 @@ class ScheduleController extends Controller {
 
       for (let index = 0; index < items.length; index++) {
         let item = items[index]
-        items.profit_day_status = 1
-        itemUpdate = await items.save()
+        item.profit_day_status = 1
+        itemUpdate = await item.save({
+          transaction: t
+        })
         if (!itemUpdate) {
           throw new Error('更新订单收益状态失败')
         }

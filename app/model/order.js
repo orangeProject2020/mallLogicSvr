@@ -43,7 +43,7 @@ class OrderModel extends Model {
           type: Sequelize.TEXT,
           defaultValue: ''
         },
-        invoice: {
+        express_info: {
           type: Sequelize.TEXT,
           defaultValue: ''
         },

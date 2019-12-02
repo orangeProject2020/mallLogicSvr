@@ -15,7 +15,7 @@ class OrderController extends Controller {
    * @param {*} ret 
    */
   async create(args, ret) {
-    this.LOG.info(args.uuid, 'create', args)
+    this.LOG.info(args.uuid, '/create', args)
     let checkUserRet = await this._checkUser(args, ret)
     if (checkUserRet.code !== 0) {
       return checkUserRet
@@ -54,7 +54,7 @@ class OrderController extends Controller {
           address: address ? JSON.stringify(address) : '',
           remark: remarkOrder
         }
-        let order = await orderModel.model().create(orderData)
+        let order = await orderModel.model().create(orderData, opts)
         if (!order) {
           throw new Error('creste order error')
         }
@@ -82,7 +82,7 @@ class OrderController extends Controller {
 
           // 判断购买限制
           if (goods.package_level > 0) {
-            let buyLimitCount = await orderItemModel.model().count('num', {
+            let buyLimitCount = await orderItemModel.model().count({
               where: {
                 goods_id: goods.id,
                 status: {
@@ -93,6 +93,7 @@ class OrderController extends Controller {
                 }
               }
             })
+            this.LOG.info(args.uuid, '/create buyLimitCount', buyLimitCount)
             if (buyLimitCount > 5) {
               throw new Error('超过平台套餐购买限制')
             }
@@ -122,7 +123,7 @@ class OrderController extends Controller {
           itemData.num = num
           itemData.price = goods.price
           itemData.price_cost = goods.price_cost
-          itemData.name = goods.name
+          itemData.name = goods.title || goods.name
           itemData.cover = goods.thumb || goods.cover
           itemData.type = goods.type
           itemData.score = goods.score || 0
@@ -440,6 +441,12 @@ class OrderController extends Controller {
     if (args.hasOwnProperty('user_id')) {
       where.user_id = args.user_id
     }
+    if (args.hasOwnProperty('order_no')) {
+      where.order_no = args.order_no
+    }
+    if (args.hasOwnProperty('order_id')) {
+      where.id = args.order_no
+    }
 
     opts.where = where
 
@@ -537,7 +544,7 @@ class OrderController extends Controller {
         throw new Error('订单状态错误-1')
       } else if (status == 1 && order.status != 0) {
         throw new Error('订单状态错误1')
-      } else if (status == 2 && order.status != 1) {
+      } else if (status == 2 && (order.status != 1 && order.status != 2)) {
         throw new Error('订单状态错误2')
       } else if (status == 3 && order.status != 2) {
         throw new Error('订单状态错误2')
@@ -560,6 +567,7 @@ class OrderController extends Controller {
         order.payment_time = now
       } else if (status == 2) {
         order.express_time = now
+        order.express_info = args.express_info || ''
       } else if (status == 3) {
         order.finish_time = now
       }
