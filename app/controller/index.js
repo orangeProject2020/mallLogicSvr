@@ -7,7 +7,8 @@ const methods = {
   profit: require('./profit'),
   withdraw: require('./withdraw'),
   user: require('./user'),
-  schedule: require('./schedule')
+  schedule: require('./schedule'),
+  clear: require('./clear')
 }
 
 let METHODS = {}
