@@ -271,15 +271,23 @@ class PaymentController extends Controller {
     } else {
       where.status = 1
     }
+    if (args.hasOwnProperty('out_trade_no')){
+      where.out_trade_no = args.out_trade_no
+    }
+    if (args.hasOwnProperty('payment_id')) {
+      where.id = args.payment_id
+    }
+    if (args.hasOwnProperty('user_id')) {
+      where.user_id = args.user_id
+    }
 
     if (args.search) {
-      let search = args.search
-      where[Op.or] = {
-        mobile: search,
-        uuid: search,
-        id: search,
-        realname: search
-      }
+      // let search = args.search
+      // where[Op.or] = {
+      //   out_trade_no: search,
+      //   user_id: search,
+      //   id: search
+      // }
     }
 
     opts.where = where
