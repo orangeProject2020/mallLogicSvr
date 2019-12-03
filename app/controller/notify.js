@@ -12,7 +12,6 @@ class NotifyController extends Controller {
     }
 
     let outTradeNo = response.out_trade_no
-
     return ret
   }
 
