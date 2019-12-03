@@ -285,6 +285,70 @@ class OrderController extends Controller {
   }
 
   /**
+   * 支付宝回调
+   * @param {*} args 
+   * @param {*} ret 
+   */
+  async notifyAlipay(args, ret) {
+    this.LOG.info(args.uuid, '/notifyAlipay', args)
+
+    let response = args.alipay_trade_wap_pay_response
+    if (response.code !== '10000') {
+      ret.code = 1
+      return ret
+    }
+
+    let outTradeNo = response.out_trade_no
+    let paymentModel = new this.MODELS.paymentModel
+
+    let t = await paymentModel.getTrans()
+    let opts = {
+      transaction: t
+    }
+    let payment = await paymentModel.findOne({
+      where: {
+        out_trade_no: outTradeNo,
+        status: 0
+      }
+    })
+    this.LOG.info(args.uuid, '/notifyAlipay payment', payment)
+
+    if (!payment) {
+      ret.code = 1
+      ret.message = '无效数据'
+    }
+
+    // let orderId = args.order_id || args.id || 0
+    let orderIds = payment.order_ids.split('-')
+    this.LOG.info(args.uuid, '/notifyAlipay orderIds', orderIds)
+    let status = 1
+    try {
+      for (let index = 0; index < orderIds.length; index++) {
+        let orderId = orderIds[index]
+        if (!orderId) {
+          continue
+        }
+
+        let updateRet = await this._updateOrderStatus(args, ret, opts, status)
+        if (updateRet.code != 0) {
+          throw new Error(updateRet.message)
+        }
+
+      }
+
+      t.commit()
+    } catch (err) {
+      console.error(err)
+      this.LOG.error(args.uuid, '/notifyAlipay', err.message || err)
+      ret.code = 1
+      ret.message = err.message || err
+
+      t.rollback()
+    }
+
+    return ret
+  }
+  /**
    * 完成支付
    * @param {*} args 
    * @param {*} ret 
