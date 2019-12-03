@@ -15,6 +15,15 @@ class Api {
 
   }
 
+  async getUserList(args) {
+    let ret = await this.request.post(this.domian + '/user/data/getListByUserIds', {
+      user_ids: args.user_ids
+    }, {
+      uuid: args.uuid || uuid.v4(),
+      timestamp: Date.now(),
+    })
+    return ret
+  }
   /**
    * 获取用户上级id
    * @param {*} args 
@@ -44,6 +53,18 @@ class Api {
     let ret = await this.request.post(this.domian + '/user/message/create', {
       user_id: args.user_id,
       info: args.info
+    }, {
+      uuid: args.uuid || uuid.v4(),
+      timestamp: Date.now(),
+    })
+    return ret
+  }
+
+  async withdrawToAccountAlipay(args) {
+    let ret = await this.request.post(this.domian + '/utils/alipay/toAccountTransfer', {
+      out_biz_no: args.out_biz_no,
+      account: args.account,
+      amount: args.amount
     }, {
       uuid: args.uuid || uuid.v4(),
       timestamp: Date.now(),

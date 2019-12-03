@@ -9,7 +9,9 @@ module.exports = {
 
   profitDayRate: [],
   withdraw: {
-    card: {amount: 250 },
+    card: {
+      amount: 2000
+    },
     message: {
       info: '您收到一张提现卡，请前往个人中心查看'
     }

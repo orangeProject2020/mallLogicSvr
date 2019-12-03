@@ -18,12 +18,12 @@ class WithDrawController extends Controller {
     if (args.hasOwnProperty('status')) {
       if (args.status === 0) {
         where.status = {
-          [Op.in]:[0,-1]
+          [Op.in]: [0, -1]
         }
       } else {
         where.status = args.status
       }
-      
+
     }
     if (args.hasOwnProperty('user_id')) {
       where.user_id = args.user_id
@@ -84,21 +84,25 @@ class WithDrawController extends Controller {
    */
   async apply(args, ret) {
     this.LOG.info(args.uuid, '/apply', args)
+    let checkUserRet = await this._checkUser(args, ret)
+    if (checkUserRet.code !== 0) {
+      return checkUserRet
+    }
     let id = args.id
     let userId = args.user_id
     let withdrawModel = new this.MODELS.withdrawModel
     let assetsModel = new this.MODELS.assetsModel
 
     let withdraw = await withdrawModel.model().findByPk(id)
-    if (withdraw.status == -1){
+    if (withdraw.status == -1) {
       withdraw.status = 0
     }
-    if (!withdraw || withdraw.status !== 0 || withdraw.user_id != userId){
+    if (!withdraw || withdraw.status !== 0 || withdraw.user_id != userId) {
       ret.code = 1
       ret.message = '无效数据'
       return ret
     }
-    
+
     // 用户资产
     let userAssets = await assetsModel.getItemByUserId(userId)
     // 提现中
@@ -107,7 +111,7 @@ class WithDrawController extends Controller {
         user_id: userId,
         status: 1
       }
-    }) 
+    })
     let userAssetsBalance = userAssets.balance - withdrawAmountApply
 
     if (withdraw.amount > userAssetsBalance) {
@@ -117,7 +121,7 @@ class WithDrawController extends Controller {
     }
 
     withdraw.status = 1
-    withdraw.apply_time = parseInt(Date.now()/ 1000)
+    withdraw.apply_time = parseInt(Date.now() / 1000)
 
     let updateRet = await withdraw.save()
     if (!updateRet) {
@@ -137,11 +141,15 @@ class WithDrawController extends Controller {
    */
   async audit(args, ret) {
     this.LOG.info(args.uuid, '/audit', args)
+    let checkUserRet = await this._checkAdminUser(args, ret)
+    if (checkUserRet.code !== 0) {
+      return checkUserRet
+    }
     let id = args.id
     let status = args.status || 2
     let withdrawModel = new this.MODELS.withdrawModel
     let assetsModel = new this.MODELS.assetsModel
-    
+
     let t = await withdrawModel.getTrans()
     try {
       let opts = {
@@ -149,7 +157,7 @@ class WithDrawController extends Controller {
       }
       let withdraw = await withdrawModel.model().findByPk(id)
       this.LOG.info(args.uuid, '/audit withdraw', withdraw)
-      if (!withdraw || withdraw.status !== 1){
+      if (!withdraw || withdraw.status !== 1) {
         throw new Error('无效数据')
       }
       let userId = withdraw.user_id
@@ -157,12 +165,19 @@ class WithDrawController extends Controller {
 
       let userAssets = await assetsModel.getItemByUserId(userId)
       this.LOG.info(args.uuid, '/audit userAssets', userAssets)
-      if (amount > userAssets.balance){
+      if (amount > userAssets.balance) {
         throw new Error('金额不足')
       }
 
       if (status === 2) {
         // TODO 提现操作
+        args.user_ids = [withdraw.user_id]
+        args.out_biz_no = withdraw.uuid
+        args.amount = amount
+        let withdrawRet = await this._withdrawToUser(args, ret)
+        if (withdrawRet.code !== 0) {
+          throw new Error(withdrawRet.message || '提现至用户支付宝失败')
+        }
 
         // 记录流水
         let logRet = await assetsModel.logWithdraw(userId, withdraw.amount, t)
@@ -170,12 +185,12 @@ class WithDrawController extends Controller {
         if (!logRet) {
           throw new Error('记录用户提现失败')
         }
-      } 
+      }
 
       withdraw.status = status
       withdraw.audit_remark = args.remark || ''
-      withdraw.audit_time = parseInt(Date.now()/ 1000)
-      withdraw.audit_user = args.user_id || ''
+      withdraw.audit_time = parseInt(Date.now() / 1000)
+      withdraw.audit_user = args.UID || ''
 
       let updateRet = await withdraw.save(opts)
       this.LOG.info(args.uuid, '/audit updateRet', updateRet)
@@ -187,7 +202,7 @@ class WithDrawController extends Controller {
     } catch (err) {
       console.error(err)
       ret.code = 1
-      ret.message = err.message 
+      ret.message = err.message
       t.rollback()
       return ret
     }
@@ -195,7 +210,38 @@ class WithDrawController extends Controller {
     return ret
   }
 
-  
+
+  async _withdrawToUser(args, ret) {
+
+    try {
+      let userListRet = await this.API.getUserList(args)
+      this.LOG.info(args.uuid, '/_withdrawToUser userListRet', userListRet)
+      if (userListRet.code !== 0 || !userListRet.data || !userListRet.data.length) {
+        throw new Error('获取提现用户失败')
+      }
+
+      let user = userListRet.data[0]
+      this.LOG.info(args.uuid, '/_withdrawToUser user', user)
+      if (!user || !user.alipay) {
+        throw new Error('提交到用户支付宝失败')
+      }
+
+      args.account = user.alipay
+      let alipayRet = await this.API.withdrawToAccountAlipay(args)
+      this.LOG.info(args.uuid, '/_withdrawToUser alipayRet', alipayRet)
+      if (alipayRet.code !== 0) {
+        throw new Error(alipayRet.message || '提交到用户支付宝失败')
+      }
+    } catch (err) {
+      ret.code = 1
+      ret.message = err.message || err
+      return ret
+    }
+
+    return ret
+  }
+
+
 }
 
 module.exports = WithDrawController

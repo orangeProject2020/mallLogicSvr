@@ -581,7 +581,8 @@ class OrderController extends Controller {
         let item = orderItems[index];
         item.status = status
         // 订单关闭时间
-        if (item.package_level > 0) {
+        if (item.package_level > 0 && status == 3) {
+          // 套餐完成操作
           item.close_time = now
           // 套餐发放提现卡
           this._withdrawCardSent({
