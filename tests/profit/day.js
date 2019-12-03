@@ -32,7 +32,7 @@ describe('prifit', () => {
     let ret = await request.post(DOMAIN + '/mall/schedule/dayJobProfitUserClose', {
       // user_id: '090d668c-7388-403f-b9b7-0c3eefd665d5',
       // id: orderId
-      date: '2019-11-21'
+      date: '2019-12-03'
     }, {
       uuid: uuidv4,
       timestamp: Date.now(),

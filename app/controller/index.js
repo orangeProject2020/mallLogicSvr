@@ -6,6 +6,7 @@ const methods = {
   statistics: require('./statistics'),
   profit: require('./profit'),
   withdraw: require('./withdraw'),
+  assets: require('./assets'),
   user: require('./user'),
   schedule: require('./schedule'),
   clear: require('./clear')
