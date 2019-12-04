@@ -292,20 +292,24 @@ class OrderController extends Controller {
   async notifyAlipay(args, ret) {
     this.LOG.info(args.uuid, '/notifyAlipay', args)
 
-    let response = args.alipay_trade_wap_pay_response
-    if (!response || response.code !== '10000') {
+    // let response = args.alipay_trade_wap_pay_response
+    let tradeStatus = args.trade_status
+
+    if (!tradeStatus || tradeStatus !== 'TRADE_SUCCESS') {
       ret.code = 1
+      this.LOG.info(args.uuid, '/notifyAlipay tradeStatus:', tradeStatus)
       return ret
     }
 
-    let outTradeNo = response.out_trade_no
+    let outTradeNo = args.out_trade_no
+    let amount = parseInt(args.total_amount * 100)
     let paymentModel = new this.MODELS.paymentModel
 
     let t = await paymentModel.getTrans()
     let opts = {
       transaction: t
     }
-    let payment = await paymentModel.findOne({
+    let payment = await paymentModel.model().findOne({
       where: {
         out_trade_no: outTradeNo,
         status: 0
@@ -313,7 +317,7 @@ class OrderController extends Controller {
     })
     this.LOG.info(args.uuid, '/notifyAlipay payment', payment)
 
-    if (!payment) {
+    if (!payment || payment.amount != amount) {
       ret.code = 1
       ret.message = '无效数据'
     }
@@ -325,16 +329,21 @@ class OrderController extends Controller {
     try {
       for (let index = 0; index < orderIds.length; index++) {
         let orderId = orderIds[index]
-        if (!orderId) {
-          continue
-        }
-
-        let updateRet = await this._updateOrderStatus(args, ret, opts, status)
-        if (updateRet.code != 0) {
-          throw new Error(updateRet.message)
+        this.LOG.info(args.uuid, '/notifyAlipay orderId', orderId)
+        if (orderId) {
+          args.order_id = orderId
+          let updateRet = await this._updateOrderStatus(args, ret, opts, status)
+          if (updateRet.code != 0) {
+            throw new Error(updateRet.message)
+          }
         }
 
       }
+
+      payment.info = JSON.stringify({
+        trade_no: args.trade_no
+      })
+      await payment.save(opts)
 
       t.commit()
     } catch (err) {
@@ -601,9 +610,10 @@ class OrderController extends Controller {
     let orderModel = new this.MODELS.orderModel
     let orderItemModel = new this.MODELS.orderItemModel
     let orderId = args.order_id || args.id || 0
-
+    this.LOG.info(args.uuid, '/_updateOrderStatus orderId', orderId)
     try {
       let order = await orderModel.model().findByPk(orderId)
+      this.LOG.info(args.uuid, '/_updateOrderStatus order', order)
       if (status == -1 && order.status != 0) {
         throw new Error('订单状态错误-1')
       } else if (status == 1 && order.status != 0) {
@@ -667,6 +677,7 @@ class OrderController extends Controller {
         }
       }
     } catch (err) {
+      console.error(err)
       ret.code = 1
       ret.message = err.message || err
     }
