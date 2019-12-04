@@ -271,7 +271,7 @@ class PaymentController extends Controller {
     } else {
       where.status = 1
     }
-    if (args.hasOwnProperty('out_trade_no')){
+    if (args.hasOwnProperty('out_trade_no')) {
       where.out_trade_no = args.out_trade_no
     }
     if (args.hasOwnProperty('payment_id')) {
