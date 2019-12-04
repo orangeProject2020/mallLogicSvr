@@ -293,7 +293,7 @@ class OrderController extends Controller {
     this.LOG.info(args.uuid, '/notifyAlipay', args)
 
     let response = args.alipay_trade_wap_pay_response
-    if (response.code !== '10000') {
+    if (!response || response.code !== '10000') {
       ret.code = 1
       return ret
     }
