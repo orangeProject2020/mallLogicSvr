@@ -1,6 +1,10 @@
 const Controller = require('../../lib/controller')
 const Op = require('sequelize').Op
 
+/**
+ * SELECT * , FROM_UNIXTIME(close_time) FROM t_order_item WHERE `status` = 3 AND package_level > 0;
+ */
+
 class ScheduleController extends Controller {
 
   /**
@@ -105,7 +109,7 @@ class ScheduleController extends Controller {
       for (let index = 0; index < items.length; index++) {
         let item = items[index]
         item.profit_day_status = 1
-        itemUpdate = await item.save({
+        let itemUpdate = await item.save({
           transaction: t
         })
         if (!itemUpdate) {
@@ -264,13 +268,14 @@ class ScheduleController extends Controller {
       }
 
       let profitDays = 0
+      let closeTime = orderItem.close_time || parseInt(Date.now() / 1000)
       if (profitLevel) {
         // 分润等级
         profitDays = 5
         let profitAmount = parseInt(profitTotal / 2 / profitDays)
         this.LOG.info(args.uuid, '/_createByOrderItem profitAmount', profitAmount)
 
-        let date = parseInt(Date.now() / 1000) + (profitDays + 1) * 24 * 3600
+        let date = closeTime + (profitDays + 1) * 24 * 3600
         date = this.UTILS.dateUtils.dateFormat(date, 'YYYY-MM-DD')
         this.LOG.info(args.uuid, '/_createByOrderItem date', date)
         let assetsProfitRet = await assetsModel.logProfitAdd(userId, {
@@ -288,7 +293,7 @@ class ScheduleController extends Controller {
         }
 
         for (let j = 1; j <= profitDays; j++) {
-          let dateTimestamp = parseInt(Date.now() / 1000) + j * 24 * 3600
+          let dateTimestamp = closeTime + j * 24 * 3600
           let dateJ = this.UTILS.dateUtils.dateFormat(dateTimestamp, 'YYYY-MM-DD')
           this.LOG.info(args.uuid, '/_createByOrderItem dateJ', dateJ)
           let profit = await profitModel.model().findOne({

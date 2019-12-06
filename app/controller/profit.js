@@ -21,6 +21,9 @@ class ProfitController extends Controller {
     if (args.hasOwnProperty('user_id')) {
       where.user_id = args.user_id
     }
+    if (args.date) {
+      where.date = args.date
+    }
 
     opts.where = where
 

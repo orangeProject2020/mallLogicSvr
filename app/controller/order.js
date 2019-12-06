@@ -655,22 +655,25 @@ class OrderController extends Controller {
         let item = orderItems[index];
         item.status = status
         // 订单关闭时间
-        if (item.package_level > 0 && status == 3) {
-          // 套餐完成操作
-          item.close_time = now
-          // 套餐发放提现卡
-          this._withdrawCardSent({
-            uuid: args.uuid,
-            user_id: item.user_id
-          }, {
-            code: 0,
-            message: ''
-          }).then(ret => {
-            this.LOG.info(args.uuid, '/_updateOrderStatus withdrawCardSent ret', ret)
-          })
-        } else {
-          item.close_time = now + 7 * 24 * 3600
+        if (status == 3) {
+          if (item.package_level > 0) {
+            // 套餐完成操作
+            item.close_time = now
+            // 套餐发放提现卡
+            this._withdrawCardSent({
+              uuid: args.uuid,
+              user_id: item.user_id
+            }, {
+              code: 0,
+              message: ''
+            }).then(ret => {
+              this.LOG.info(args.uuid, '/_updateOrderStatus withdrawCardSent ret', ret)
+            })
+          } else {
+            item.close_time = now + 7 * 24 * 3600
+          }
         }
+
         let itemRet = await item.save(opts)
         if (!itemRet) {
           throw new Error('更新订单商品状态失败')
