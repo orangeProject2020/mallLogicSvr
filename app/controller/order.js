@@ -40,6 +40,17 @@ class OrderController extends Controller {
       let retData = []
       let scoreTotal = 0
 
+      let pUserRet = await this.API.getParentUser({
+        user_id: userId
+      })
+      this.LOG.info(args.uuid, '/create pUserRet', pUserRet)
+      if (pUserRet.code) {
+        throw new Error(pUserRet.message)
+      }
+
+      let inviteUserId = pUserRet.data ? (pUserRet.data.user_id || '') : ''
+      this.LOG.info(args.uuid, '/create inviteUserId', inviteUserId)
+
       for (let index = 0; index < orders.length; index++) {
         let orderInfo = orders[index]
         let businessId = orderInfo.business_id || 0
@@ -130,6 +141,7 @@ class OrderController extends Controller {
           itemData.total = goodsPrice * num
           itemData.package_level = goods.package_level || 0
           itemData.package_profit = goods.package_profit ? (goods.package_profit * num) : 0
+          itemData.invite_user_id = (goods.package_level > 0) ? inviteUserId : '' // 套餐记录上级id
 
           let orderItem = await orderItemModel.model().create(itemData, opts)
           if (!orderItem) {

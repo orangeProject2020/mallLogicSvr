@@ -98,6 +98,10 @@ class OrderItemModel extends Model {
         close_time: {
           type: Sequelize.BIGINT(11),
           defaultValue: 0
+        },
+        invite_user_id: {
+          type: Sequelize.STRING(64),
+          defaultValue: ''
         }
       }, {
         timestamps: true,

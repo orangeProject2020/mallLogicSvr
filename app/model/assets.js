@@ -230,7 +230,7 @@ class AssetsModel extends Model {
           [Sequelize.Op.gt]: 0
         },
         profit_date: {
-          [Sequelize.Op.gte]: date
+          [Sequelize.Op.lte]: date
         },
         profit_level: {
           [Sequelize.Op.gt]: 0

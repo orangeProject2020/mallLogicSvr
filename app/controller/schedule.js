@@ -14,7 +14,20 @@ class ScheduleController extends Controller {
    */
   async profitPlatformCheck(args, ret) {
     this.LOG.info(args.uuid, '/profitPlatformCheck', args)
-    let date = args.date || this.UTILS.dateUtils.dateFormat(null, 'YYYY-MM-DD')
+    let date = args.date || ''
+    let today = this.UTILS.dateUtils.dateFormat(null, 'YYYY-MM-DD')
+    if (!date) {
+      ret.code = 1
+      ret.message = '请选择正确的日期'
+      return ret
+    }
+
+    // if (date == today) {
+    //   ret.code = 1
+    //   ret.message = '只能结算之前的'
+    //   return ret
+    // }
+
     let dateTimestart = this.UTILS.dateUtils.getTimestamp(date + ' 00:00:00')
     let dateTimeEnd = this.UTILS.dateUtils.getTimestamp(date + ' 23:59:59')
 
@@ -39,10 +52,22 @@ class ScheduleController extends Controller {
     }
 
     let totalProfit = 0
+    let inviteUserIdsData = {} // 上级用户id
     items.forEach(item => {
       let itemProfit = (item.price - item.price_cost) * item.num
       totalProfit += itemProfit
+
+      if (item.invite_user_id != '') {
+        this.LOG.info(args.uuid, '/profitPlatformCheck item.invite_user_id', item.invite_user_id)
+        if (inviteUserIdsData.hasOwnProperty(item.invite_user_id)) {
+          inviteUserIdsData[item.invite_user_id]++
+        } else {
+          inviteUserIdsData[item.invite_user_id] = 1
+        }
+      }
     })
+    this.LOG.info(args.uuid, '/profitPlatformCheck inviteUserIdsData', inviteUserIdsData)
+
     let totalProfitPlatform = parseInt(totalProfit * 10 / 100)
     this.LOG.info(args.uuid, '/profitPlatformCheck totalProfitPlatform', totalProfitPlatform)
     let profitPlatforms = [0, 0, 0]
@@ -63,21 +88,49 @@ class ScheduleController extends Controller {
       for (let index = 0; index < userGroupList.length; index++) {
         let users = userGroupList[index]
         let profitPlatformAmount = profitPlatforms[index]
-        this.LOG.info(args.uuid, '/profitPlatformCheck users:', index, users.length)
+        this.LOG.info(args.uuid, '/profitPlatformCheck users:', '分红等级:', index, '人数：', users.length)
         if (users.length <= 0) {
           continue
         }
 
         // 每个用户获得分红
-        let profitPlatformUser = parseInt(profitPlatformAmount / users.length)
-        this.LOG.info(args.uuid, '/profitPlatformCheck profitPlatformUser:', profitPlatformUser)
+        // let profitPlatformUsers = {}
+        // 先计算每个用户的比例
+        let profitPlatformUsersBaseCount = users.length
+        this.LOG.info(args.uuid, '/profitPlatformCheck profitPlatformUsersBaseCount:', profitPlatformUsersBaseCount)
+        let profitPlatformUserRateCounts = {}
+        users.forEach(user => {
+          let userId = user.user_id
+          let userRateCount = 1
+          Object.keys(inviteUserIdsData).forEach(inviteUserId => {
+            if (userId == inviteUserId) {
+              this.LOG.info(args.uuid, '/profitPlatformCheck userId:', userId)
+              let userCount = inviteUserIdsData[inviteUserId]
+              this.LOG.info(args.uuid, '/profitPlatformCheck userCount:', userCount)
+              profitPlatformUsersBaseCount += userCount
+              userRateCount += userCount
+            }
+          })
+          profitPlatformUserRateCounts[userId] = userRateCount
+        })
+
+        this.LOG.info(args.uuid, '/profitPlatformCheck profitPlatformUserRateCounts:', profitPlatformUserRateCounts)
+        this.LOG.info(args.uuid, '/profitPlatformCheck profitPlatformUsersBaseCount:', profitPlatformUsersBaseCount)
+        // let profitPlatformUser = parseInt(profitPlatformAmount / users.length)
+        // this.LOG.info(args.uuid, '/profitPlatformCheck profitPlatformUser:', profitPlatformUser)
 
         // 记录用户分红
         for (let indexU = 0; indexU < users.length; indexU++) {
           let user = users[indexU];
           let userId = user.user_id
-          let userProfit = (user.profit >= profitPlatformUser) ? profitPlatformUser : user.profit
           this.LOG.info(args.uuid, '/profitPlatformCheck userId:', userId)
+
+          // 用户分红
+          let profitPlatformUser = parseInt(profitPlatformUserRateCounts[userId] / profitPlatformUsersBaseCount * profitPlatformAmount)
+          this.LOG.info(args.uuid, '/profitPlatformCheck profitPlatformUser rate:', `${profitPlatformUserRateCounts[userId]}/${profitPlatformUsersBaseCount}`)
+          this.LOG.info(args.uuid, '/profitPlatformCheck profitPlatformUser:', profitPlatformUser)
+
+          let userProfit = (user.profit >= profitPlatformUser) ? profitPlatformUser : user.profit
           this.LOG.info(args.uuid, '/profitPlatformCheck userProfit:', userProfit)
 
           let profit = await profitModel.model().create({
@@ -95,7 +148,7 @@ class ScheduleController extends Controller {
           if (!profit) {
             throw new Error('记录用户收益数据失败：' + userId)
           }
-          this.LOG.info(args.uuid, '/profitPlatformCheck profit:', profit.id)
+          this.LOG.info(args.uuid, '/profitPlatformCheck profit.id:', profit.id)
 
           let assetsRet = await assetsModel.logCharge(userId, userProfit, t, true)
           this.LOG.info(args.uuid, '/profitPlatformCheck assetsRet:', assetsRet)
@@ -117,8 +170,11 @@ class ScheduleController extends Controller {
         }
       }
 
+      // throw new Error('test')
+
       t.commit()
     } catch (err) {
+      console.error(err)
       ret.code = 1
       ret.message = err.message
       t.rollback()
