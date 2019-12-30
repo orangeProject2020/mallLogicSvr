@@ -1,5 +1,5 @@
 module.exports = process.env.NODE_ENV === 'production' ? {
-  host: '127.0.0.0',
+  host: 'localhost',
   port: 3306,
   dbname: 'db_mall',
   username: 'root',
