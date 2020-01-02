@@ -126,6 +126,10 @@ class GoodsModel extends Model {
         buy_limit: {
           type: Sequelize.BIGINT,
           defaultValue: 0
+        },
+        pics: {
+          type: Sequelize.STRING(1000),
+          defaultValue: ''
         }
       }, {
         timestamps: true,

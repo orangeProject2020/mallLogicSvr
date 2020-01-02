@@ -228,7 +228,7 @@ class GoodsController extends Controller {
     goodsData.price_vip = args.price_vip || 0
     goodsData.stock = args.stock || -1
     goodsData.sales = args.sales || 0
-    goodsData.pics = args.pics.length ? args.pics.join(',') : ''
+    goodsData.pics = args.pics || ''
     goodsData.sort = args.sort || 0
     goodsData.status = args.status || 0
     goodsData.create_user = args.user_id || ''
