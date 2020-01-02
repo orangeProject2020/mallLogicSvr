@@ -352,6 +352,7 @@ class OrderController extends Controller {
 
       }
 
+      payment.status = status
       payment.info = JSON.stringify({
         trade_no: args.trade_no
       })
