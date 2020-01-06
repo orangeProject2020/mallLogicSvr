@@ -22,11 +22,11 @@ class ScheduleController extends Controller {
       return ret
     }
 
-    // if (date == today) {
-    //   ret.code = 1
-    //   ret.message = '只能结算之前的'
-    //   return ret
-    // }
+    if (date == today) {
+      ret.code = 1
+      ret.message = '只能结算之前的'
+      return ret
+    }
 
     let dateTimestart = this.UTILS.dateUtils.getTimestamp(date + ' 00:00:00')
     let dateTimeEnd = this.UTILS.dateUtils.getTimestamp(date + ' 23:59:59')
@@ -70,15 +70,16 @@ class ScheduleController extends Controller {
 
     let totalProfitPlatform = parseInt(totalProfit * 10 / 100)
     this.LOG.info(args.uuid, '/profitPlatformCheck totalProfitPlatform', totalProfitPlatform)
-    let profitPlatforms = [0, 0, 0]
-    profitPlatforms[0] = parseInt(totalProfitPlatform * 20 / 100)
-    profitPlatforms[1] = parseInt(totalProfitPlatform * 35 / 100)
-    profitPlatforms[2] = totalProfitPlatform - profitPlatforms[0] - profitPlatforms[1]
+    let profitPlatforms = [0, 0, 0, 0]
+    profitPlatforms[0] = parseInt(totalProfitPlatform * 15 / 100)
+    profitPlatforms[1] = parseInt(totalProfitPlatform * 20 / 100)
+    profitPlatforms[2] = parseInt(totalProfitPlatform * 25 / 100)
+    profitPlatforms[3] = totalProfitPlatform - profitPlatforms[0] - profitPlatforms[1] - profitPlatforms[2]
     this.LOG.info(args.uuid, '/profitPlatformCheck profitPlatforms', profitPlatforms)
 
     // 获取可分红用户
     let userGroupList = await assetsModel.getUserGroup(date, 'all')
-    this.LOG.info(args.uuid, '/profitPlatformCheck userGroupList', userGroupList[0].length, userGroupList[1].length, userGroupList[2].length)
+    this.LOG.info(args.uuid, '/profitPlatformCheck userGroupList', userGroupList[0].length, userGroupList[1].length, userGroupList[2].length, userGroupList[3].length)
 
     // return ret
 

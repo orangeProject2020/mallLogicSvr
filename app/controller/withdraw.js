@@ -52,7 +52,7 @@ class WithDrawController extends Controller {
   }
 
   /**
-   * 发放提现卡
+   * 发放提现卡->添加提现额度
    * @param {*} args 
    * @param {*} ret 
    */
@@ -66,14 +66,20 @@ class WithDrawController extends Controller {
     let userId = args.user_id
     let amount = args.amount
 
-    let withdrawModel = new this.MODELS.withdrawModel
-    let createRet = await withdrawModel.model().create({
-      user_id: userId,
-      amount: amount,
-      status: 0
-    })
+    // let withdrawModel = new this.MODELS.withdrawModel
+    // let createRet = await withdrawModel.model().create({
+    //   user_id: userId,
+    //   amount: amount,
+    //   status: 0
+    // })
+    let assetsModel = new this.MODELS.assetsModel
+    let logRet = await assetsModel.logWithdrawAdd(userId, amount, null)
 
-    ret.data = createRet
+    if (!logRet) {
+      ret.code = 1
+      ret.message = '添加提现额度失败'
+    }
+
     return ret
   }
 
@@ -88,23 +94,30 @@ class WithDrawController extends Controller {
     if (checkUserRet.code !== 0) {
       return checkUserRet
     }
-    let id = args.id
+    // let id = args.id
     let userId = args.user_id
+    let amount = args.amount
     let withdrawModel = new this.MODELS.withdrawModel
     let assetsModel = new this.MODELS.assetsModel
 
-    let withdraw = await withdrawModel.model().findByPk(id)
-    if (withdraw.status == -1) {
-      withdraw.status = 0
-    }
-    if (!withdraw || withdraw.status !== 0 || withdraw.user_id != userId) {
-      ret.code = 1
-      ret.message = '无效数据'
-      return ret
-    }
+    // let withdraw = await withdrawModel.model().findByPk(id)
+    // if (withdraw.status == -1) {
+    //   withdraw.status = 0
+    // }
+    // if (!withdraw || withdraw.status !== 0 || withdraw.user_id != userId) {
+    //   ret.code = 1
+    //   ret.message = '无效数据'
+    //   return ret
+    // }
 
     // 用户资产
     let userAssets = await assetsModel.getItemByUserId(userId)
+    let withdrawCountLimit = (userAssets.balance > userAssets.withdraw) ? userAssets.withdraw : userAssets.balance
+    if (withdrawCountLimit <= 0) {
+      ret.code = 1
+      ret.message = '提现金额为0'
+      return ret
+    }
     // 提现中
     let withdrawAmountApply = await withdrawModel.model().sum('amount', {
       where: {
@@ -112,19 +125,24 @@ class WithDrawController extends Controller {
         status: 1
       }
     })
-    let userAssetsBalance = userAssets.balance - withdrawAmountApply
+    this.LOG.info(args.uuid, '/apply withdrawAmountApply：', withdrawAmountApply)
+    let userAssetsBalance = withdrawCountLimit - withdrawAmountApply
+    this.LOG.info(args.uuid, '/apply userAssetsBalance', userAssetsBalance)
 
-    if (withdraw.amount > userAssetsBalance) {
+    if (amount > userAssetsBalance) {
       ret.code = 1
       ret.message = '提现金额不足'
       return ret
     }
 
+    let withdraw = {}
+    withdraw.user_id = userId
+    withdraw.amount = amount
     withdraw.status = 1
     withdraw.apply_time = parseInt(Date.now() / 1000)
 
-    let updateRet = await withdraw.save()
-    if (!updateRet) {
+    let createRet = await withdrawModel.model().create(withdraw)
+    if (!createRet) {
       ret.code = 1
       ret.message = '申请失败'
       return ret
@@ -135,7 +153,7 @@ class WithDrawController extends Controller {
   }
 
   /**
-   * 审核提现
+   * 审核提现审核
    * @param {*} args 
    * @param {*} ret 
    */
@@ -165,12 +183,13 @@ class WithDrawController extends Controller {
 
       let userAssets = await assetsModel.getItemByUserId(userId)
       this.LOG.info(args.uuid, '/audit userAssets', userAssets)
+
       if (amount > userAssets.balance) {
         throw new Error('金额不足')
       }
 
       if (status === 2) {
-        // TODO 提现操作
+        // 提现操作
         args.user_ids = [withdraw.user_id]
         args.out_biz_no = withdraw.uuid
         args.amount = amount

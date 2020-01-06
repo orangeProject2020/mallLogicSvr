@@ -674,7 +674,8 @@ class OrderController extends Controller {
             // 套餐发放提现卡
             this._withdrawCardSent({
               uuid: args.uuid,
-              user_id: item.user_id
+              user_id: item.user_id,
+              level: item.package_level
             }, {
               code: 0,
               message: ''
@@ -719,11 +720,12 @@ class OrderController extends Controller {
 
     // 发送提现卡
     let pUserId = pUserRet.data.user_id
+    let levelNum = (args.level || 1) - 1
     this.LOG.info('/withdrawCardSent pUserId:', pUserId)
     let sentRet = await this.API.withdarwCardSent({
       uuid: args.uuid,
       user_id: pUserId,
-      amount: this.CONFIG.withdraw.card.amount
+      amount: this.CONFIG.withdraw.amounts[levelNum],
     })
     this.LOG.info('/withdrawCardSent sentRet:', sentRet)
 

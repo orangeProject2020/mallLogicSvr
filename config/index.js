@@ -10,10 +10,11 @@ module.exports = {
   profitDayRate: [],
   withdraw: {
     card: {
-      amount: 2000
+      amount: 20000 // 无用
     },
+    amounts: [20000, 100000, 200000, 350000],
     message: {
-      info: '您收到一张提现卡，请前往个人中心查看'
+      info: '您的提现限制已增加，请前往个人中心查看'
     }
   }
 }

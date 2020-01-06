@@ -42,6 +42,10 @@ class AssetsModel extends Model {
         profit_level: {
           type: Sequelize.INTEGER(2),
           defaultValue: 0
+        },
+        withdraw: {
+          type: Sequelize.BIGINT(11),
+          defaultValue: 0
         }
 
       }, {
@@ -92,6 +96,10 @@ class AssetsModel extends Model {
         profit: {
           type: Sequelize.BIGINT(11),
           defaultValue: 0
+        },
+        withdraw: {
+          type: Sequelize.BIGINT(11),
+          defaultValue: 0
         }
 
       }, {
@@ -120,7 +128,8 @@ class AssetsModel extends Model {
         balance: 0,
         profit: 0,
         profit_date: '',
-        profit_level: 0
+        profit_level: 0,
+        withdraw: 0
       })
     }
 
@@ -176,12 +185,33 @@ class AssetsModel extends Model {
     }
 
     assets.balance = assets.balance - balance
+    assets.withdraw = assets.withdraw - balance
     await assets.save(opts)
 
     let logRet = await this.logsModel().create({
       user_id: userId,
       balance: -1 * balance,
+      withdraw: -1 * balance,
       type: 2
+    }, opts)
+
+    return logRet ? true : false
+  }
+
+  async logWithdrawAdd(userId, amount, t = null) {
+    let assets = await this.getItemByUserId(userId)
+    let opts = {}
+    if (t) {
+      opts.transaction = t
+    }
+
+    assets.withdraw = assets.withdraw + amount
+    await assets.save(opts)
+
+    let logRet = await this.logsModel().create({
+      user_id: userId,
+      withdraw: amount,
+      type: 4
     }, opts)
 
     return logRet ? true : false
@@ -239,6 +269,7 @@ class AssetsModel extends Model {
     })
 
     let group = [
+      [],
       [],
       [],
       []
