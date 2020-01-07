@@ -519,7 +519,14 @@ class OrderController extends Controller {
     let opts = {}
 
     if (args.hasOwnProperty('status')) {
-      where.status = args.status
+      if (typeof args.status === 'object') {
+        where.status = {
+          [Op.in]: args.status
+        }
+      } else {
+        where.status = args.status
+      }
+
     }
     if (args.hasOwnProperty('business_id')) {
       where.business_id = args.business_id || 0

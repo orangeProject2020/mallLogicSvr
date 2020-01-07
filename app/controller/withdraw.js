@@ -129,6 +129,12 @@ class WithDrawController extends Controller {
     let userAssetsBalance = withdrawCountLimit - withdrawAmountApply
     this.LOG.info(args.uuid, '/apply userAssetsBalance', userAssetsBalance)
 
+    if (amount < this.CONFIG.withdraw.amountMin || userAssetsBalance < this.CONFIG.withdraw.amountMin) {
+      ret.code = 1
+      ret.message = '提现金额小于最低提现额度'
+      return ret
+    }
+
     if (amount > userAssetsBalance) {
       ret.code = 1
       ret.message = '提现金额不足'
@@ -192,7 +198,7 @@ class WithDrawController extends Controller {
         // 提现操作
         args.user_ids = [withdraw.user_id]
         args.out_biz_no = withdraw.uuid
-        args.amount = amount
+        args.amount = parseInt(amount * 99 / 100) // 1%手续费
         let withdrawRet = await this._withdrawToUser(args, ret)
         if (withdrawRet.code !== 0) {
           throw new Error(withdrawRet.message || '提现至用户支付宝失败')
