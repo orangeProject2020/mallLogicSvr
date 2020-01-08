@@ -40,6 +40,7 @@ class ScheduleController extends Controller {
       where: {
         status: 3,
         profit_day_status: 0,
+        after_status: 0,
         close_time: {
           [Op.gte]: dateTimestart,
           [Op.lt]: dateTimeEnd

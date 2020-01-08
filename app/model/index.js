@@ -3,6 +3,7 @@ module.exports = {
   goodsModel: require('./goods'),
   orderModel: require('./order'),
   orderItemModel: require('./orderItem'),
+  orderAfterModel: require('./orderAfter'),
   paymentModel: require('./payment'),
   statisticsModel: require('./statistics'),
   profitModel: require('./profit'),

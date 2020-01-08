@@ -102,6 +102,14 @@ class OrderItemModel extends Model {
         invite_user_id: {
           type: Sequelize.STRING(64),
           defaultValue: ''
+        },
+        after_status: {
+          type: Sequelize.INTEGER(2),
+          defaultValue: 0
+        },
+        after_remark: {
+          type: Sequelize.STRING(255),
+          defaultValue: ''
         }
       }, {
         timestamps: true,
