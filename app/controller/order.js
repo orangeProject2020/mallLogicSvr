@@ -370,6 +370,75 @@ class OrderController extends Controller {
 
     return ret
   }
+
+  async notifyWxpay(args, ret) {
+    this.LOG.info(args.uuid, '/notifyWxpay', args)
+
+    // let response = args.alipay_trade_wap_pay_response
+    let returnCode = args.return_code
+
+    if (!returnCode || returnCode !== 'SUCCESS') {
+      ret.code = 1
+      this.LOG.info(args.uuid, '/notifyWxpay returnCode:', returnCode)
+      return ret
+    }
+
+    let outTradeNo = args.out_trade_no
+    let amount = parseInt(args.total_fee)
+    let paymentModel = new this.MODELS.paymentModel
+
+    let t = await paymentModel.getTrans()
+    let opts = {
+      transaction: t
+    }
+    let payment = await paymentModel.model().findOne({
+      where: {
+        out_trade_no: outTradeNo,
+        status: 0
+      }
+    })
+    this.LOG.info(args.uuid, '/notifyWxpay payment', payment)
+
+    if (!payment || payment.amount != amount) {
+      ret.code = 1
+      ret.message = '无效数据'
+    }
+
+    // let orderId = args.order_id || args.id || 0
+    let orderIds = payment.order_ids.split('-')
+    this.LOG.info(args.uuid, '/notifyWxpay orderIds', orderIds)
+    let status = 1
+    try {
+      for (let index = 0; index < orderIds.length; index++) {
+        let orderId = orderIds[index]
+        this.LOG.info(args.uuid, '/notifyWxpay orderId', orderId)
+        if (orderId) {
+          args.order_id = orderId
+          let updateRet = await this._updateOrderStatus(args, ret, opts, status)
+          if (updateRet.code != 0) {
+            throw new Error(updateRet.message)
+          }
+        }
+
+      }
+
+      payment.status = status
+      payment.info = JSON.stringify(args)
+      await payment.save(opts)
+
+      t.commit()
+    } catch (err) {
+      console.error(err)
+      this.LOG.error(args.uuid, '/notifyWxpay', err.message || err)
+      ret.code = 1
+      ret.message = err.message || err
+
+      t.rollback()
+    }
+
+    return ret
+  }
+
   /**
    * 完成支付
    * @param {*} args 
