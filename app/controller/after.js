@@ -216,9 +216,10 @@ class AfterController extends Controller {
       } else if (orderItemStatus == 3) {
         // 已完成订单，超过7天不可退货
         let now = parseInt(Date.now() / 1000)
-        let afterTimeLimit = now + 7 * 24 * 3600
+
         let closeTime = orderItem.close_time
-        this.LOG.info(args.uuid, '/create closeTime', this.UTILS.dateUtils.dateFormat(now))
+        let afterTimeLimit = closeTime + 7 * 24 * 3600
+        this.LOG.info(args.uuid, '/create now', this.UTILS.dateUtils.dateFormat(now))
         this.LOG.info(args.uuid, '/create closeTime', this.UTILS.dateUtils.dateFormat(closeTime))
         this.LOG.info(args.uuid, '/create afterTimeLimit', this.UTILS.dateUtils.dateFormat(afterTimeLimit))
 

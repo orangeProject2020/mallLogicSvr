@@ -2,6 +2,7 @@
 const methods = {
   goods: require('./goods'),
   order: require('./order'),
+  after: require('./after'),
   payment: require('./payment'),
   statistics: require('./statistics'),
   profit: require('./profit'),
