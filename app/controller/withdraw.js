@@ -97,6 +97,7 @@ class WithDrawController extends Controller {
     // let id = args.id
     let userId = args.user_id
     let amount = args.amount
+    let name = args.name || ''
     let withdrawModel = new this.MODELS.withdrawModel
     let assetsModel = new this.MODELS.assetsModel
 
@@ -125,6 +126,7 @@ class WithDrawController extends Controller {
         status: 1
       }
     })
+    withdrawAmountApply = withdrawAmountApply || 0
     this.LOG.info(args.uuid, '/apply withdrawAmountApply：', withdrawAmountApply)
     let userAssetsBalance = withdrawCountLimit - withdrawAmountApply
     this.LOG.info(args.uuid, '/apply userAssetsBalance', userAssetsBalance)
@@ -143,6 +145,7 @@ class WithDrawController extends Controller {
 
     let withdraw = {}
     withdraw.user_id = userId
+    withdraw.name = name
     withdraw.amount = amount
     withdraw.status = 1
     withdraw.apply_time = parseInt(Date.now() / 1000)
@@ -170,7 +173,7 @@ class WithDrawController extends Controller {
       return checkUserRet
     }
     let id = args.id
-    let status = args.status || 2
+    let status = args.hasOwnProperty('status') ? args.status : 2
     let withdrawModel = new this.MODELS.withdrawModel
     let assetsModel = new this.MODELS.assetsModel
 
@@ -199,10 +202,12 @@ class WithDrawController extends Controller {
         args.user_ids = [withdraw.user_id]
         args.out_biz_no = withdraw.uuid
         args.amount = parseInt(amount * 99 / 100) // 1%手续费
-        let withdrawRet = await this._withdrawToUser(args, ret)
-        if (withdrawRet.code !== 0) {
-          throw new Error(withdrawRet.message || '提现至用户支付宝失败')
-        }
+
+        // TODO 先不请求接口
+        // let withdrawRet = await this._withdrawToUser(args, ret)
+        // if (withdrawRet.code !== 0) {
+        //   throw new Error(withdrawRet.message || '提现至用户支付宝失败')
+        // }
 
         // 记录流水
         let logRet = await assetsModel.logWithdraw(userId, withdraw.amount, t)

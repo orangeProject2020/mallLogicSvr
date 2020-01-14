@@ -54,6 +54,10 @@ class WithdrawModel extends Model {
         info: {
           type: Sequelize.TEXT,
           defaultValue: ''
+        },
+        name: {
+          type: Sequelize.STRING(64),
+          defaultValue: ''
         }
 
       }, {
