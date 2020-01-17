@@ -14,7 +14,7 @@ module.exports = {
     },
     // amountMin: 20000,
     amountMin: 1000,
-    amounts: [20000, 40000, 80000, 200000],
+    amounts: [20000, 50000, 100000, 250000],
     message: {
       info: '您的提现限制已增加，请前往个人中心查看'
     }
