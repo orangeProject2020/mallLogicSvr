@@ -60,7 +60,7 @@ class AfterController extends Controller {
     this.LOG.info(args.uuid, '/list opts', opts)
 
     let orderAfterRet = await orderAfterModel.model().findAndCountAll(opts)
-    this.LOG.info(args.uuid, '/list orderAfterRet', orderRet)
+    this.LOG.info(args.uuid, '/list orderAfterRet', orderAfterRet)
 
     let rows = []
     for (let index = 0; index < orderAfterRet.rows.length; index++) {
@@ -244,6 +244,7 @@ class AfterController extends Controller {
       createData.reason = reason
       createData.pics = pics.length ? JSON.stringify(pics) : ''
       createData.status = 1
+      createData.express_info = args.express_info || ''
       if (type == 1) {
         createData.amount = orderItem.total
       }

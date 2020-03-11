@@ -62,6 +62,10 @@ class OrderAfterModel extends Model {
         remark: {
           type: Sequelize.STRING(255),
           defaultValue: ''
+        },
+        express_info: {
+          type: Sequelize.TEXT,
+          defaultValue: ''
         }
 
 
